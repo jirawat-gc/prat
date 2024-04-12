@@ -1,8 +1,36 @@
+using PTTGC.Prat.Backend.Domains;
+using PTTGC.Prat.Common;
+using PTTGC.Prat.Common.Requests;
+using PTTGC.Prat.Common.Response;
+using PTTGC.Prat.Core;
 
 namespace PTTGC.Prat.Backend;
 
 public class Program
 {
+    private static async Task<GenericResponse<TResult>> HandleRequest<TResult>(HttpContext context, Func<Task<TResult>> handler)
+    {
+        TResult? result = default;
+        ErrorDetail? errorDetail = null;
+
+        try
+        {
+            result = await handler();
+        }
+        catch (ExceptionWithErrorDetail ex)
+        {
+            errorDetail = ex.Detail;
+            context.Response.StatusCode = ex.Detail.code;
+        }
+
+        return new GenericResponse<TResult>()
+        {
+            data = result,
+            code = errorDetail.code,
+            message = errorDetail.message,
+        };
+    }
+
     public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
@@ -23,59 +51,72 @@ public class Program
             app.UseSwaggerUI();
         }
 
-        app.UseAuthorization();
-
-        app.MapPost("/workspace", (HttpContext httpContext) =>
+        app.MapPost("/workspace", async (Workspace ws, HttpContext ctx) =>
         {
-            // submit workspace for processing
-
-            return 200;
+            return await HandleRequest(ctx, async () =>
+            {
+                // submit workspace for processing
+                var processedWorkspace = await WorkspaceDomain.SubmitWorkspace(ws);
+                return processedWorkspace;
+            });
         })
         .WithName("Submit Workspace")
         .WithOpenApi();
 
-        app.MapGet("/clusters", (HttpContext httpContext) =>
+        app.MapGet("/clusters", async (HttpContext ctx) =>
         {
-            // Get clusters 
-            // submit workspace for processing
-
-            return 200;
+            return await HandleRequest(ctx, async () =>
+            {
+                var clusters = await PatentClusterDomain.GetClusters();
+                return clusters;
+            });
         })
-        .WithName("Get Clusters")
+        .WithName("Get Patent Clusters for Rendering")
         .WithOpenApi();
 
-        app.MapGet("/clusters/{cluster_id}", (HttpContext httpContext) =>
+        app.MapPost("/findcluster", async (FindClusterRequest fcr, HttpContext ctx) =>
         {
-            // Get clusters members
-            return 200;
+            return await HandleRequest(ctx, async () =>
+            {
+                // submit workspace for processing
+                var localCluster = await PatentClusterDomain.GetLocalCluster(fcr.SummaryEmbeddingVector, fcr.Flags);
+                return localCluster;
+            });
+        })
+        .WithName("Find Local Cluster")
+        .WithOpenApi();
+
+        app.MapGet("/clusters/{clusterLabel}/members", async (string clusterLabel, HttpContext ctx) =>
+        {
+            return await HandleRequest(ctx, async () =>
+            {
+                var patents = await PatentClusterDomain.GetClusterMember(clusterLabel);
+                return patents;
+            });
         })
         .WithName("Get Cluster Member")
         .WithOpenApi();
 
-
-        app.MapGet("/clusters/{cluster_id}", (HttpContext httpContext) =>
+        app.MapPost("/prompt", async (PromptRequest p, HttpContext ctx) =>
         {
-            // Get clusters members
-            return 200;
+            return await HandleRequest(ctx, async () =>
+            {
+                var response = await VertexAIDomain.GetCompletion(p);
+                return response;
+            });
         })
-        .WithName("Get Cluster Member")
+        .WithName("Perform Text Generation with Prompt")
         .WithOpenApi();
 
-        app.MapGet("/clusters/{cluster_id}", (HttpContext httpContext) =>
+        app.MapPost("/embeddings", async (EmbeddingRequest emb, HttpContext ctx) =>
         {
-            // Get clusters members
-            return 200;
+            return await HandleRequest(ctx, async () =>
+            {
+                var response = await VertexAIDomain.GetEmbeddings(emb.Content);
+                return response;
+            });
         })
-        .WithName("Get Cluster Member")
-        .WithOpenApi();
-
-
-        app.MapPost("/analysis", (HttpContext httpContext) =>
-        {
-            // Get analysis of the patent comparing to another patent
-            return 200;
-        })
-        .WithName("Get Analysis")
+        .WithName("Create Embeddings from given content")
         .WithOpenApi();
 
         app.Run();

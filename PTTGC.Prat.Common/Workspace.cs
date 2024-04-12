@@ -1,9 +1,19 @@
 ﻿
+using PTTGC.Prat.Common;
+
 namespace PTTGC.Prat.Core
 {
     public class Workspace
     {
+        /// <summary>
+        /// Unique Identifier of this workspace
+        /// </summary>
         public Guid Id { get; set; }
+
+        /// <summary>
+        /// Owner of this Workspace
+        /// </summary>
+        public string OwnerId { get; set; }
 
         /// <summary>
         /// What user entered as innovation title
@@ -26,15 +36,28 @@ namespace PTTGC.Prat.Core
         public List<MaterialAttribute> MaterialAttributes { get; set; } = new();
 
         /// <summary>
+        /// Summary of the text for search by AI
+        /// </summary>
+        public string AISearchText { get; set; }
+
+        /// <summary>
+        /// Embedding Vector created from AI Search Text
+        /// </summary>
+        public double[] AIEmbeddingVector { get; set; } = new double[0];
+
+        /// <summary>
         /// Flag as processed by AI
         /// </summary>
         public Dictionary<string, string> AIPatentFlags { get; set; } = new();
 
         /// <summary>
-        /// Summary of the text for search by AI
+        /// The cluster which matches this innovation
         /// </summary>
-        public string AISearchText { get; set; }
+        public PatentCluster MatchingCluster { get; set; } = new();
 
-        
+        /// <summary>
+        /// Patent that was analyzed as part of this workspace
+        /// </summary>
+        public List<Patent> AnalyzedPatents { get; set; } = new();
     }
 }
