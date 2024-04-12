@@ -1,0 +1,142 @@
+﻿@page "/"
+
+<div class="aiapp-container">
+
+    <div class="aiapp-block">
+
+        <h1>PRAT</h1>
+
+        <input type="text"
+               @bind="this.Workspace.InnovationTitle" />
+
+        <textarea class="form-control"
+                  @bind="this.Workspace.InnovationDescription">
+
+        </textarea>
+
+        <div>
+
+            @foreach( var key in new string[] { "Polymer", "Olefins", "Aromatics", "Green Chemicals", "EO-based performance", "High volume speciality" })
+            {
+                var fixedKey = this.FixFlagKey(key);
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox"
+                           @onchange="@(c => this.Workspace.InnovationFlags[fixedKey] = (bool)c.Value)"
+                           value=@this.Workspace.InnovationFlags.Get(fixedKey)>
+
+                    <label class="form-check-label">
+                        @(key)
+                    </label>
+                </div>
+            }
+
+        </div>
+
+        <div class="chemical-attributes">
+
+            @foreach (var item in this.Workspace.MaterialAttributes)
+            {
+                <div class="input-group mb-3">
+
+                    <input type="text" class="form-control"
+                           @bind="item.MaterialName">
+
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        @(item.AttributeName ?? "(Select Attribute)")
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+
+                        @foreach (var attr in _CommonAttributes)
+                        {
+                            <li>
+                                <a class="dropdown-item" href="#"--------
+                                   @onclick="() => this.ChangeMaterialAttribute(item, attr)">
+                                    @(attr.attribute)
+                                </a>
+                            </li>
+                        }
+
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <input type="text" class="form-control"
+                                   @bind="item.AttributeName"
+                                   placeholder="Attribute" />
+                        </li>
+                    </ul>
+
+
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        @if (item.MinRange != null && item.MaxRange != null)
+                        {
+                            @($"{item.MinRange} - {item.MaxRange}")
+                        }
+                        else if (item.MinRange != null)
+                        {
+                            @($"≥ {item.MinRange}")
+                        }
+                        else if (item.MaxRange != null)
+                        {
+                            @($"≤ {item.MaxRange}")
+                        }
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+
+                        <li>
+                            <input type="number" class="form-control"
+                                   @bind="item.MinRange"
+                                   placeholder="Enter Attribute" />
+                        </li>
+
+                        <li><hr class="dropdown-divider"></li>
+
+                        <li>
+                            <input type="number" class="form-control"
+                                   @bind="item.MaxRange"
+                                   placeholder="Enter Attribute" />
+                        </li>
+                    </ul>
+
+
+                    <span class="input-group-text">
+                        @if (this.IsCustomAttribute(item))
+                        {
+                            <input type="text" class="form-control"
+                                   @bind="item.MeasurementUnit"
+                            placeholder="Unit" />
+                        }
+                        else
+                        {
+                            @(item.MeasurementUnit)
+                        }
+                    </span>
+
+                </div>
+            }
+
+        </div>
+
+    </div>
+
+    <div class="aiapp-block mt-4">
+
+        <div class="header d-flex">
+
+            <div class="logo">
+                PRAT
+            </div>
+
+            <div class="workspaceinfo">
+
+                <h2>
+                    @(this.Workspace.InnovationTitle)
+                </h2>
+
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+</div>

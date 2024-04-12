@@ -1,0 +1,93 @@
+@import "../font/dbheavent.css";
+@import "blinkingcursor.less";
+@import "chat.less";
+
+@gc-blue: #025FAC;
+@gc-bright-blue: #29ace2;
+@gc-navy-blue: #26225F;
+@gc-grey: #66676B;
+@gc-red: #EE3442;
+@gc-platinum: #DBDAD6;
+@gc-iron: #B3B1B2;
+@gc-silver: #8B8C8E;
+@gc-chromium: #57565C;
+@gc-sulfer: #FEC52E;
+@gc-flame: #F05423;
+@gc-magma: #EA1B35;
+@gc-ruby: #BF1E8E;
+@gc-ultra-violet: #665FAC;
+@gc-marine: #0062A9;
+@gc-hydrogen: #00B4E5;
+@gc-oxygen: #01A3AE;
+@gc-copper-chloride: #01A951;
+@gc-peridot: #C3D62F;
+
+:root {
+    --font-12: 20px;
+    --font-14: 22px;
+    --font-16: 24px;
+    --font-18: 26px;
+    --font-20: 28px;
+    --font-24: 32px;
+    --font-32: 40px;
+    --font-family-Inter: 'DB Heavent';
+    --font-family-Roboto: 'DB Heavent';
+    --dex-gradient: linear-gradient(90deg, rgba(33,211,238,1) 0%, rgba(88,156,246,1) 38%, rgba(117,126,250,1) 90%, rgba(84,96,253,1) 100%);
+    --dex-gradient-small: linear-gradient(90deg, rgba(33,211,238,1) 0%, rgba(88,156,246,1) 60%, rgba(117,126,250,1) 95%);
+    --color-translucentblue: rgba(0,175,242,0.13);
+    --gc-blue: #025FAC;
+    --gc-bright-blue: #29ace2;
+    --gc-navy-blue: #26225F;
+    --gc-grey: #66676B;
+    --gc-red: #EE3442;
+    --gc-platinum: #DBDAD6;
+    --gc-iron: #B3B1B2;
+    --gc-silver: #8B8C8E;
+    --gc-chromium: #57565C;
+    --gc-sulfer: #FEC52E;
+    --gc-flame: #F05423;
+    --gc-magma: #EA1B35;
+    --gc-ruby: #BF1E8E;
+    --gc-ultra-violet: #665FAC;
+    --gc-marine: #0062A9;
+    --gc-hydrogen: #00B4E5;
+    --gc-oxygen: #01A3AE;
+    --gc-copper-chloride: #01A951;
+    --gc-peridot: #C3D62F;
+}
+
+
+.aiapp-block {
+    background-color: white;
+    padding: 24px;
+    border: 1px solid var(--gc-bright-blue);
+    border-radius: 8px;
+    box-shadow: 0 0 20px fade(@gc-bright-blue, 20%);
+
+    .app-subheader {
+    }
+}
+
+.aiapp-container {
+    background-image: url('/images/pattern-1.png');
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    min-height: 1200px;
+
+    .common-app-header {
+        margin-bottom: 24px;
+
+        .back-button {
+            color: black;
+            font-size: 50px;
+
+            &:hover {
+                opacity: 0.6;
+            }
+        }
+
+        h1 {
+            color: var(--gc-blue);
+        }
+    }
+}
