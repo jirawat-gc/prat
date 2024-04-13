@@ -1,21 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace PTTGC.Prat.Common;
 
-namespace PTTGC.Prat.Common
+public static class Util
 {
-    public static class Util
+    public static bool Get(this IDictionary<string, bool> dict, string key)
     {
-        public static bool Get(this Dictionary<string, bool> dict, string key)
+        if (dict.ContainsKey(key))
         {
-            if (dict.ContainsKey(key))
-            {
-                return dict[key];
-            }
-
-            return false;
+            return dict[key];
         }
+
+        return false;
     }
+    public static string Get(this IDictionary<string, string> dict, string key)
+    {
+        if (dict.ContainsKey(key))
+        {
+            return dict[key];
+        }
+
+        return string.Empty;
+    }
+
+    public record TitleDescription( string title, string description);
 }

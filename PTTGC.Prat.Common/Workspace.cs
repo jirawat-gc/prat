@@ -8,12 +8,12 @@ namespace PTTGC.Prat.Core
         /// <summary>
         /// Unique Identifier of this workspace
         /// </summary>
-        public Guid Id { get; set; }
+        public Guid Id { get; set; } = Guid.NewGuid();
 
         /// <summary>
         /// Owner of this Workspace
         /// </summary>
-        public string OwnerId { get; set; }
+        public string OwnerId { get; set; } = "00000000-1001-0000-0000-000000000000";
 
         /// <summary>
         /// What user entered as innovation title
@@ -43,7 +43,7 @@ namespace PTTGC.Prat.Core
         /// <summary>
         /// Embedding Vector created from AI Search Text
         /// </summary>
-        public double[] AIEmbeddingVector { get; set; } = new double[0];
+        public VectorEmbedding AIEmbeddingVector { get; set; } = new();
 
         /// <summary>
         /// Flag as processed by AI

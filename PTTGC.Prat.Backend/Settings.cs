@@ -18,4 +18,9 @@ public class Settings
     /// Embedding Model to use
     /// </summary>
     public string EmbeddingModel { get; set; }
+
+    /// <summary>
+    /// Workspace Bucket Name
+    /// </summary>
+    public string WorkspaceBucketName { get; set; }
 }

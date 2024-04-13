@@ -9,7 +9,7 @@ public class VectorEmbedding
 {
     public const int VECTOR_LENGTH = 768;
 
-    private double[] _Vector;
+    private double[] _Vector = new double[VECTOR_LENGTH];
     private string _Encoded = string.Empty;
 
     private double? _Magnitude;
