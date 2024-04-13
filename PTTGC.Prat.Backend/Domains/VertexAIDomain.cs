@@ -1,11 +1,15 @@
-﻿using HandlebarsDotNet;
+﻿using Google.Api.Gax.Grpc;
+using Google.Apis.Bigquery.v2.Data;
+using Google.Cloud.AIPlatform.V1;
+using HandlebarsDotNet;
 using HandlebarsDotNet.Extension.NewtonsoftJson;
 using Newtonsoft.Json.Linq;
 using PTTGC.Prat.Common;
 using PTTGC.Prat.Common.Requests;
 using System.Diagnostics;
-
+using System.Text;
 using CompiledTemplate = HandlebarsDotNet.HandlebarsTemplate<object, object>;
+using Value = Google.Protobuf.WellKnownTypes.Value;
 
 namespace PTTGC.Prat.Backend.Domains;
 
@@ -13,10 +17,33 @@ public static class VertexAIDomain
 {
     private static IHandlebars? templateEngine;
 
+    private static List<PredictionServiceClient> _Clients;
+    private static string[] _Regions;
+
     static VertexAIDomain()
     {
         templateEngine = Handlebars.Create();
         templateEngine.Configuration.UseNewtonsoftJson();
+
+        _Regions = new string[]
+        {
+            "us-central1",
+            "us-west4",
+            "us-east4",
+            "us-west1",
+            "asia-northeast3",
+            "asia-southeast1",
+            "asia-northeast1",
+        };
+
+        _Clients = _Regions.Select(r =>
+        {
+            return new PredictionServiceClientBuilder
+            {
+                Endpoint = $"{r}-aiplatform.googleapis.com"
+            }.Build();
+
+        }).ToList();
     }
 
     /// <summary>
@@ -29,7 +56,7 @@ public static class VertexAIDomain
         var toReturn = new Dictionary<string, string>();
 
         // load here
-        toReturn[""] = "";
+        toReturn["DEBUG"] = "{{prompt_text}}";
 
         // compile templates
 
@@ -41,6 +68,13 @@ public static class VertexAIDomain
     }
 
     private static Dictionary<string, CompiledTemplate> _Prompts = new();
+
+    private static long _RegionRotation = 0;
+
+    private static int RotateRegion()
+    {
+        return (int)(Interlocked.Increment(ref _RegionRotation) % _Clients.Count);
+    }
 
     /// <summary>
     /// Gets Completion from Vertex AI
@@ -69,9 +103,49 @@ public static class VertexAIDomain
 
         var finalPrompt = template(req.PromptContext);
 
-        // call vertex ai
+        // ref: https://github.com/GoogleCloudPlatform/dotnet-docs-samples/blob/main/aiplatform/api/AIPlatform.Samples/GeminiQuickstart.cs
 
-        return string.Empty;
+        // call vertex ai
+        var regionIndex = VertexAIDomain.RotateRegion();
+        var client = _Clients[regionIndex];
+
+        // Initialize request argument(s)
+        var content = new Content
+        {
+            Role = "USER"
+        };
+        content.Parts.AddRange(new List<Part>()
+        {
+            new() {
+                Text = finalPrompt
+            }
+        });
+
+        var generateContentRequest = new GenerateContentRequest
+        {
+            Model = $"projects/{Settings.Instance.GCPProjectId}/locations/{_Regions[regionIndex]}/publishers/google/models/{Settings.Instance.GeminiModel}",
+            GenerationConfig = new GenerationConfig
+            {
+                Temperature = req.Temperature,
+                TopP = req.TopP,
+                TopK = req.TopK,
+                MaxOutputTokens = req.MaxTokens
+            }
+        };
+        generateContentRequest.Contents.Add(content);
+
+        // Make the request, returning a streaming response
+        using PredictionServiceClient.StreamGenerateContentStream response = client.StreamGenerateContent(generateContentRequest);
+
+        StringBuilder fullText = new();
+
+        AsyncResponseStream<GenerateContentResponse> responseStream = response.GetResponseStream();
+        await foreach (GenerateContentResponse responseItem in responseStream)
+        {
+            fullText.Append(responseItem.Candidates[0].Content.Parts[0].Text);
+        }
+
+        return fullText.ToString();
     }
 
     /// <summary>
@@ -83,6 +157,34 @@ public static class VertexAIDomain
     {
         // call vertex ai to get embeddings
 
-        return new double[0];
+        // Ref: https://cloud.google.com/vertex-ai/docs/samples/aiplatform-sdk-embedding
+
+        var regionIndex = VertexAIDomain.RotateRegion();
+        var client = _Clients[regionIndex];
+
+        // Configure the parent resource.
+        var endpoint = EndpointName.FromProjectLocationPublisherModel(
+            Settings.Instance.GCPProjectId,
+            _Regions[regionIndex], "google", Settings.Instance.EmbeddingModel);
+
+        // Initialize request argument(s).
+        var instances = new List<Value>
+        {
+            Value.ForStruct(new()
+            {
+                Fields =
+                {
+                    ["content"] = Value.ForString(content),
+                }
+            })
+        };
+
+        // Make the request.
+        var response = client.Predict(endpoint, instances, null);
+
+        // Parse and return the embedding vector count.
+        var values = response.Predictions.First().StructValue.Fields["embeddings"].StructValue.Fields["values"].ListValue.Values;
+
+        return values.Select(v => v.NumberValue).ToArray();
     }
 }

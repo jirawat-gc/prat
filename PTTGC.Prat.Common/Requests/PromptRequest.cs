@@ -4,11 +4,15 @@ namespace PTTGC.Prat.Common.Requests;
 
 public class PromptRequest
 {
-    public double Temperature { get; set; }
+    // ref: Defaults https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/gemini
 
-    public double MaxTokens { get; set; }
+    public float Temperature { get; set; } = 0.9f;
 
-    public double TopP { get; set; }
+    public int MaxTokens { get; set; } = 8192;
+
+    public float TopP { get; set; } = 1.0f;
+
+    public int TopK { get; set; } = 32;
 
     public string PromptKey { get; set; }
 
