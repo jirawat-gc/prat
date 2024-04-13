@@ -1,0 +1,28 @@
+INSERT INTO patents_processed.thailand_dip_2_features
+SELECT
+  JobId,
+  CAST( ApplicationId as STRING),
+  Title,
+  LOWER(JSON_EXTRACT_SCALAR(REPLACE(Response, "```json", ""), "$.chemical")) = "true" As chemical,
+  LOWER(JSON_EXTRACT_SCALAR(REPLACE(Response, "```json", ""), "$.polymer")) = "true" As polymer,
+  LOWER(JSON_EXTRACT_SCALAR(REPLACE(Response, "```json", ""), "$.home_chemical")) = "true" As home_chemical,
+  LOWER(JSON_EXTRACT_SCALAR(REPLACE(Response, "```json", ""), "$.industrial_chemical")) = "true" As industrial_chemical,
+  LOWER(JSON_EXTRACT_SCALAR(REPLACE(Response, "```json", ""), "$.argriculture")) = "true" As argriculture,
+  LOWER(JSON_EXTRACT_SCALAR(REPLACE(Response, "```json", ""), "$.automotive")) = "true" As automotive,
+  LOWER(JSON_EXTRACT_SCALAR(REPLACE(Response, "```json", ""), "$.bottle_caps")) = "true" As bottle_caps,
+  LOWER(JSON_EXTRACT_SCALAR(REPLACE(Response, "```json", ""), "$.bottle")) = "true" As bottle,
+  LOWER(JSON_EXTRACT_SCALAR(REPLACE(Response, "```json", ""), "$.paint")) = "true" As paint,
+  LOWER(JSON_EXTRACT_SCALAR(REPLACE(Response, "```json", ""), "$.coating")) = "true" As coating,
+  LOWER(JSON_EXTRACT_SCALAR(REPLACE(Response, "```json", ""), "$.home_appliances")) = "true" As home_appliances,
+  LOWER(JSON_EXTRACT_SCALAR(REPLACE(Response, "```json", ""), "$.epoxy_composite")) = "true" As epoxy_composite,
+  LOWER(JSON_EXTRACT_SCALAR(REPLACE(Response, "```json", ""), "$.packaging")) = "true" As packaging,
+  LOWER(JSON_EXTRACT_SCALAR(REPLACE(Response, "```json", ""), "$.large_blow")) = "true" As large_blow,
+  LOWER(JSON_EXTRACT_SCALAR(REPLACE(Response, "```json", ""), "$.non_woven")) = "true" As non_woven,
+  LOWER(JSON_EXTRACT_SCALAR(REPLACE(Response, "```json", ""), "$.pipe")) = "true" As pipe,
+  LOWER(JSON_EXTRACT_SCALAR(REPLACE(Response, "```json", ""), "$.pipe_fittings")) = "true" As pipe_fittings,
+  LOWER(JSON_EXTRACT_SCALAR(REPLACE(Response, "```json", ""), "$.wire")) = "true" As wire,
+  LOWER(JSON_EXTRACT_SCALAR(REPLACE(Response, "```json", ""), "$.has_chemical_process")) = "true" As has_chemical_process,
+  LOWER(JSON_EXTRACT_SCALAR(REPLACE(Response, "```json", ""), "$.has_manufacturing_process")) = "true" As has_manufacturing_process,
+  JSON_EXTRACT_STRING_ARRAY(REPLACE(Response, "```json", ""), "$.product") As product,
+FROM `curious-pointer-419406.patents_processed.thailand_dip_1_promptlog` 
+WHERE JobId = "job202404090913"
