@@ -23,4 +23,14 @@ public class Settings
     /// Workspace Bucket Name
     /// </summary>
     public string WorkspaceBucketName { get; set; }
+
+    /// <summary>
+    /// Workspace Bucket Name
+    /// </summary>
+    public string PublicConfigBucketName { get; set; }
+
+    /// <summary>
+    /// Workspace Bucket Name
+    /// </summary>
+    public string PublicConfigBucketSignerCredential { get; set; }
 }

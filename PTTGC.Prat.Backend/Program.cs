@@ -69,11 +69,11 @@ public class Program
         {
             return await HandleRequest(ctx, async () =>
             {
-                var clusters = await PatentClusterDomain.GetClusters();
+                var clusters = await PatentClusterDomain.GetPatentClusterSignedUrls();
                 return clusters;
             });
         })
-        .WithName("Get Patent Clusters for Rendering")
+        .WithName("Get Signed URLs to load patent clusters")
         .WithOpenApi();
 
         app.MapPost("/findcluster", async (FindClusterRequest fcr, HttpContext ctx) =>
@@ -86,17 +86,6 @@ public class Program
             });
         })
         .WithName("Find Local Cluster")
-        .WithOpenApi();
-
-        app.MapGet("/clusters/{clusterLabel}/members", async (string clusterLabel, HttpContext ctx) =>
-        {
-            return await HandleRequest(ctx, async () =>
-            {
-                var patents = await PatentClusterDomain.GetClusterMember(clusterLabel);
-                return patents;
-            });
-        })
-        .WithName("Get Cluster Member")
         .WithOpenApi();
 
         app.MapPost("/prompt", async (PromptRequest p, HttpContext ctx) =>
