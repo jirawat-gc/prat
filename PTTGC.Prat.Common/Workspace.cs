@@ -41,6 +41,16 @@ namespace PTTGC.Prat.Core
         public string AISearchText { get; set; }
 
         /// <summary>
+        /// Predicted Cluster (from Python Model)
+        /// </summary>
+        public string AIPredictedCluster { get; set; }
+
+        /// <summary>
+        /// Predicted Cluster Coordinates 
+        /// </summary>
+        public double[] AIPredictedVisualizationCoords { get; set; } = new double[3];
+
+        /// <summary>
         /// Embedding Vector created from AI Search Text
         /// </summary>
         public VectorEmbedding AIEmbeddingVector { get; set; } = new();
