@@ -81,7 +81,7 @@ public class Program
             return await HandleRequest(ctx, async () =>
             {
                 // submit workspace for processing
-                var localCluster = await PatentClusterDomain.GetLocalCluster(fcr.SummaryEmbeddingVector, fcr.Flags);
+                var localCluster = await PatentClusterDomain.GetLocalCluster(fcr.EmbeddingVector, fcr.FeatureFlags);
                 return localCluster;
             });
         })

@@ -41,6 +41,16 @@ public class VertexAIDomainTest
     }
 
     [TestMethod]
+    public async Task Embeddings_Real()
+    {
+        var result = await VertexAIDomain.GetEmbeddings("This patent describes a method for making freeze-dried stir-fried basil, also known as stir-fried basil semi-finished products or dried stir-fried basil. The method involves stir-frying meat or a meat substitute with seasonings, then adding stir-fried basil, chili, onion, and green beans. The mixture is then frozen and vacuum-dried until it is dry or has a low moisture content (less than 9% by weight). The dried product is then packaged in an airtight container.");
+
+        var json = JArray.FromObject(result).ToString(Formatting.None);
+
+        Assert.IsTrue(result.Length >= 768);
+    }
+
+    [TestMethod]
     public async Task EmbeddingsEnCode()
     {
         var result = await VertexAIDomain.GetEmbeddings("this is a test");

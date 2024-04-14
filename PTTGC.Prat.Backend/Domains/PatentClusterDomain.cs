@@ -30,8 +30,11 @@ public static class PatentClusterDomain
     /// <param name="innovationDescription"></param>
     /// <param name="innovationFlags"></param>
     /// <returns></returns>
-    public static async Task<PatentCluster> GetLocalCluster(double[] embeddingVector, IDictionary<string, bool> innovationFlags)
+    public static async Task<PatentCluster> GetLocalCluster(double[] embeddingVector, double[] innovationFlags)
     {
+        
+        // scale the data to 0/1 based on
+
         // run the Vertex AI Custom DBSCAN model to find our cluster
 
         // perform similarity 

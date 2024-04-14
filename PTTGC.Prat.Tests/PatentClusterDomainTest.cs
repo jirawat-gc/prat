@@ -12,7 +12,6 @@ namespace PTTGC.Prat.Tests;
 [TestClass]
 public class PatentClusterDomainTest
 {
-
     [TestInitialize]
     public void Setup()
     {
@@ -32,5 +31,18 @@ public class PatentClusterDomainTest
         var secondCached = await PatentClusterDomain.GetPatentClusterSignedUrls();
 
         Assert.IsTrue(result.Expiry == secondCached.Expiry);
+    }
+
+    [TestMethod]
+    public async Task TestFeatureFlagBuilder()
+    {
+        var result = FindClusterRequest.BuildFeatureFlagArray(new Dictionary<string, bool>()
+        {
+            {  "chemical", true },
+            {  "polymer", true },
+        }).ToList();
+
+        Assert.IsTrue(result[0] == -1.5);
+        Assert.IsTrue(result[1] == 1.5);
     }
 }
