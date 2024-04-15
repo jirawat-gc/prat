@@ -51,19 +51,29 @@ public static partial class VertexAIDomain
         """;
 
         promptDict["EXTRACT_MAIN_CLAIM"] = """
-            Title: {{title}}
+            Title: {{Title}}
             Content:
-            {{patent_claims}}
+            {{PatentClaims}}
 
             ## Above is content from patent claims and title. Take a deep breath to consider both Title and Content before answering.
-            "Standalone Claim" is a claim point in Patent Claim where the point does not referring to any other point.
-            Extract latest revision of standalone claim from this patent claim, make it simple that high school student can understand.
+            "Standalone Claim" are claim points in Patent Claims where the point does not referring to any other point.
+            Answer in this JSON format:
+            {
+                "standalone_claims" : [
+                    List any and all Standalone Claim present in patent claims in this format:
+                    {
+                        "claim" : standalone claim content shorten to 2 sentences,
+                        "point_index" : claim number of this standalone claim as mentioned in content,
+                        "revision" : if the patent claim contains multiple revisions, specify the revision or date where this standalone claim is presented
+                    }
+                ]
+            }
         """;
 
         promptDict["EXTRACT_TEST_RESULT"] = """
-            Title: {{title}}
+            Title: {{Title}}
             Content:
-            {{patent_claims}}
+            {{PatentClaims}}
 
         
             ## Above is content from patent claims and title. Take a deep breath to consider both Title and Content before answering.
@@ -84,9 +94,9 @@ public static partial class VertexAIDomain
         """;
 
         promptDict["EXTRACT_POLYMER_FEATURE"] = """
-            Title: {{title}}
+            Title: {{Title}}
             Content:
-            {{patent_claims}}
+            {{PatentClaims}}
 
             ## Above is content from patent claims and title. Take a deep breath to consider both Title and Content before answering.
             Do not include markdown in your answer.
@@ -97,7 +107,8 @@ public static partial class VertexAIDomain
                 "is_polyolefins" : if patent claim is about polyolefins or mentioned polyolefins,
                 "is_polyethylene" : if patent claim is about polyethylene or mentioned polyethylene,
                 "base_of_polymer" : base of polymer mentioned in patent claim,
-                "application": application of product or process as mentioned in patent claim, such as: film, bottle caps, coating or 
+                "comonomer" : Comonomer mentioned in patent claim,
+                "application": application of product or process as mentioned in patent claim, such as: film, bottle caps, coating
             }
         """;
 

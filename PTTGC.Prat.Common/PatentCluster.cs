@@ -19,15 +19,10 @@ public class PatentCluster
     /// Cluster Centoid in 3D Space
     /// (Use PCA to reduce features into 3D)
     /// </summary>
-    public double[] ClusterCentoid { get; set; }
+    public double[] ClusterCentoid { get; set; } = new double[3];
 
     /// <summary>
     /// Ids of Patents in this cluster
     /// </summary>
-    public List<string> PatentApplicationIds { get; set; }
-
-    /// <summary>
-    /// Patents in this cluster
-    /// </summary>
-    public List<Patent> Patents { get; set; } = new();
+    public List<string> PatentApplicationIds { get; set; } = new();
 }

@@ -3,6 +3,8 @@ using Newtonsoft.Json;
 using PTTGC.Prat.Common;
 using PTTGC.Prat.Core;
 using PTTGC.Prat.Common.Requests;
+using PTTGC.Prat.Common.Response;
+using System.IO.Compression;
 
 namespace PTTGC.Prat.Web;
 
@@ -11,6 +13,8 @@ public class PratBackend
     public static PratBackend Default { get; private set; } = new();
 
     public string BaseAddress { get; set; }
+
+    public string GCSBaseAddress { get; set; }
 
     public string AccessToken { get; set; }
 
@@ -60,6 +64,70 @@ public class PratBackend
         await s.DisposeAsync();
 
         return jo;
+    }
+
+    /// <summary>
+    /// Gets JSON from given URL
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="url"></param>
+    /// <returns></returns>
+    public async Task<JToken> GetJsonFromGCS(string url, bool compressed = false)
+    {
+        using var c = new HttpClient();
+        var s = await c.GetStreamAsync( $"{this.GCSBaseAddress}{url}");
+
+        GZipStream gz = null;
+        if (compressed)
+        {
+            gz = new GZipStream(s, CompressionMode.Decompress);
+            s = gz;
+        }
+
+        using var sr = new StreamReader(s);
+        using var jtr = new JsonTextReader(sr);
+
+        var jt = await JToken.LoadAsync(jtr);
+
+        if (gz != null)
+        {
+            await gz.DisposeAsync();
+        }
+        await s.DisposeAsync();
+
+        return jt;
+    }
+
+    /// <summary>
+    /// Gets JSON from given URL
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="url"></param>
+    /// <returns></returns>
+    public async Task<object> PopulateFromGCS(string url, object target, bool compressed = false)
+    {
+        using var c = new HttpClient();
+        var s = await c.GetStreamAsync($"{this.GCSBaseAddress}{url}");
+
+        GZipStream gz = null;
+        if (compressed)
+        {
+            gz = new GZipStream(s, CompressionMode.Decompress);
+            s = gz;
+        }
+
+        using var sr = new StreamReader(s);
+        var json = await sr.ReadToEndAsync();
+
+        if (gz != null)
+        {
+            await gz.DisposeAsync();
+        }
+        await s.DisposeAsync();
+
+        JsonConvert.PopulateObject(json, target);
+
+        return target;
     }
 
     /// <summary>
@@ -134,25 +202,15 @@ public class PratBackend
     }
 
     /// <summary>
-    /// List Patent Clusters
+    /// Load Workspace from GCS
     /// </summary>
+    /// <param name="w"></param>
+    /// <param name="sessionId"></param>
     /// <returns></returns>
-    public async Task<List<PatentCluster>> ListClusters()
+    public async Task<Workspace> LoadWorkspace(string workspaceId)
     {
-        var jo = await this.Get("clusters", this.AppId, this.SessionId);
-
-        return jo["data"].ToObject<List<PatentCluster>>();
-    }
-
-    /// <summary>
-    /// Find Cluster of given innovation
-    /// </summary>
-    /// <returns></returns>
-    public async Task<PatentCluster> FindCluster(FindClusterRequest fcr)
-    {
-        var jo = await this.PostJsonAsync("findcluster", fcr, this.AppId, this.SessionId);
-
-        return jo["data"].ToObject<PatentCluster>();
+        var jo = await this.Get($"workspace/{workspaceId}", this.AppId, this.SessionId);
+        return jo["data"].ToObject<Workspace>();
     }
 
     /// <summary>
@@ -161,9 +219,9 @@ public class PratBackend
     /// <param name="w"></param>
     /// <param name="sessionId"></param>
     /// <returns></returns>
-    public async Task<List<Patent>> ListClusterMember(string clusterLabel)
+    public async Task<List<Patent>> FindSimilarPatent(SimilaritySearchRequest req)
     {
-        var jo = await this.Get($"clusters/{clusterLabel}/members", this.AppId, this.SessionId);
+        var jo = await this.PostJsonAsync($"similaritysearch", req, this.AppId, this.SessionId);
 
         return jo["data"].ToObject<List<Patent>>();
     }
@@ -186,9 +244,10 @@ public class PratBackend
     /// <param name="w"></param>
     /// <param name="sessionId"></param>
     /// <returns></returns>
-    public async Task<double[]> Embeddings(EmbeddingRequest req)
+    public async Task<VectorEmbedding> Embeddings(EmbeddingRequest req)
     {
         var jo = await this.PostJsonAsync("embeddings", req, this.AppId, this.SessionId);
-        return (jo["data"] as JArray).Select( item => (double)item).ToArray();
+        var data = jo["data"].ToObject<EmbeddingResponse>();
+        return new VectorEmbedding(data.VectorBase64);
     }
 }

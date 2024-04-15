@@ -8,12 +8,12 @@ namespace PTTGC.Prat.Backend.Domains;
 
 public static class SimilaritySearchDomain
 {
-    public static async Task<List<Patent>> FindMatches(double[] embeddingVector )
+    public static async Task<List<Patent>> FindMatches(double[] embeddingVector, double maxDistance = 0.25 )
     {
         var client = BigQueryClient.Create(Settings.Instance.GCPProjectId);
 
         var vector = JArray.FromObject(embeddingVector).ToString(Formatting.None);
-        var topK = 100;
+        var topK = 25;
 
         // We optimize it by keeping Patents as separate JSON file in GCS
         // and use short-lived token to have client download it by themselves
@@ -34,7 +34,7 @@ public static class SimilaritySearchDomain
                 options => '{{""fraction_lists_to_search"": 0.005}}')
 
         WHERE
-            distance < 0.3
+            distance < {maxDistance}
             ";
 
         var toReturn = new List<Patent>();

@@ -31,5 +31,24 @@ namespace PTTGC.Prat.Core
         public string ClusterLabel { get; set; }
 
         public PatentAnalysis Analysis { get; set;} = new();
+
+        public DateTimeOffset ApplicationDate { get; set; }
+
+        public string LatestStatus { get; set; }
+
+        public DateTimeOffset LastUpdate { get; set; }
+
+        public string Excerpt { get; set; }
+
+        public string Owner { get; set; }
+
+        public string Innovator { get; set; }
+
+        public string AbstractUrl { get; set; }
+
+        public string PatentClaimUrl { get; set; }
+
+        public string DescriptionUrl { get; set; }
+
     }
 }

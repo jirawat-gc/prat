@@ -35,6 +35,11 @@ namespace PTTGC.Prat.Core
         public string InnovationComonomer { get; set; }
 
         /// <summary>
+        /// Current max distance threshold
+        /// </summary>
+        public double MaxDistance { get; set; } = 0.25;
+
+        /// <summary>
         /// Flags as set on Frontend
         /// </summary>
         public Dictionary<string, bool> InnovationFlags { get; set; } = new();
@@ -48,6 +53,11 @@ namespace PTTGC.Prat.Core
         /// Whether the innovation has material test result
         /// </summary>
         public bool InnovationIncludeTestResults { get; set; }
+
+        /// <summary>
+        /// Response as received by AI
+        /// </summary>
+        public string AIResponse { get; set; }
 
         /// <summary>
         /// Summary of the text for search by AI
@@ -80,9 +90,14 @@ namespace PTTGC.Prat.Core
         public PatentCluster MatchingCluster { get; set; } = new();
 
         /// <summary>
-        /// Patent that was analyzed as part of this workspace
+        /// Ths patents which are similar to current patent
         /// </summary>
-        public List<Patent> AnalyzedPatents { get; set; } = new();
+        public List<Patent> SimilarPatent { get; set; } = new();
+
+        /// <summary>
+        /// Patent that was going to be analyzed as part of this workspace
+        /// </summary>
+        public List<Patent> PatentsToAnalyze { get; set; } = new();
 
         /// <summary>
         /// Gets the prompt context from workspace

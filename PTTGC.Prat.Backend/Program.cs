@@ -5,6 +5,7 @@ using PTTGC.Prat.Common;
 using PTTGC.Prat.Common.Requests;
 using PTTGC.Prat.Common.Response;
 using PTTGC.Prat.Core;
+using System.Numerics;
 
 namespace PTTGC.Prat.Backend;
 
@@ -88,12 +89,29 @@ public class Program
                 var jo = await readBodyAsJSON(ctx);
                 var ws = jo.ToObject<Workspace>()!;
 
-                // submit workspace for processing
-                var processedWorkspace = await WorkspaceDomain.SubmitWorkspace(ws);
+                // owner id should be from token, but we did not implement that yet;
+                var ownerId = "00000000-2222-2222-2222-000000000000";
+                ws.OwnerId = ownerId;
+
+                var processedWorkspace = await WorkspaceDomain.SaveWorkspace(ws);
                 return processedWorkspace;
             });
         })
         .WithName("Submit Workspace")
+        .WithOpenApi();
+
+        app.MapGet("/workspace/{workspaceId}", async (string workspaceId, HttpContext ctx) =>
+        {
+            return await HandleRequest(ctx, async () =>
+            {
+                // owner id should be from token, but we did not implement that yet;
+                var ownerId = "00000000-2222-2222-2222-000000000000";
+
+                var loaded = await WorkspaceDomain.LoadWorkspace(ownerId, workspaceId);
+                return loaded;
+            });
+        })
+        .WithName("Get Workspace")
         .WithOpenApi();
 
         app.MapGet("/clusters", async (HttpContext ctx) =>
@@ -105,6 +123,22 @@ public class Program
             });
         })
         .WithName("Get Signed URLs to load patent clusters")
+        .WithOpenApi();
+
+        app.MapPost("/similaritysearch", async (HttpContext ctx) =>
+        {
+            return await HandleRequest(ctx, async () =>
+            {
+                var jo = await readBodyAsJSON(ctx);
+                var req = jo.ToObject<SimilaritySearchRequest>()!;
+
+                var vector = VectorEmbedding.Decode(req.VectorBase64);
+                var result = await SimilaritySearchDomain.FindMatches(vector);
+
+                return result;
+            });
+        })
+        .WithName("Use BigQuery Vector Index to find similar patent")
         .WithOpenApi();
 
         app.MapPost("/prompt", async (HttpContext ctx) =>
@@ -128,8 +162,11 @@ public class Program
                 var jo = await readBodyAsJSON(ctx);
                 var emb = jo.ToObject<EmbeddingRequest>()!;
 
-                var response = await VertexAIDomain.GetEmbeddings(emb.Content);
-                return response;
+                var result = await VertexAIDomain.GetEmbeddings(emb.Content);
+                return new EmbeddingResponse
+                {
+                    VectorBase64 = VectorEmbedding.Encode(result),
+                };
             });
         })
         .WithName("Create Embeddings from given content")

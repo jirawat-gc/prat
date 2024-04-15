@@ -40,6 +40,17 @@
     <script src="_framework/blazor.webassembly.js"></script>
     <script>navigator.serviceWorker.register('service-worker.js');</script>
 
+    <script>
+        window.showModal = function (modalId) {
+            var myModalEl = document.querySelector(modalId);
+            var modal = bootstrap.Modal.getOrCreateInstance(myModalEl);
+            modal.show();
+        };
+
+        window.navigateIframe = function (iframeId, src) {
+            document.getElementById(iframeId).src = src;
+        };
+    </script>
 </body>
 
 </html>

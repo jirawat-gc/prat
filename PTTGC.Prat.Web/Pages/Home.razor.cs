@@ -2,6 +2,7 @@
 using Microsoft.JSInterop;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using PTTGC.Prat.Common;
 using PTTGC.Prat.Common.Requests;
 using PTTGC.Prat.Core;
 using System.Text;
@@ -34,11 +35,15 @@ public partial class Home : ComponentBase
         }
     }
 
+    public bool IsDemo { get; set; } = true;
+
     /// <summary>
     /// Current workspace session
     /// </summary>
     public Workspace Workspace { get; set; } = new()
     {
+        Id = Guid.Parse("00000000-1111-1111-1111-000000000000"),
+        OwnerId = "00000000-2222-2222-2222-000000000000",
         InnovationTitle = "Polyethylene for blown film application with high elasticity property",
         InnovationDescription = "This innovation is about polyethylene polymer with C4 (butene) as comonomer which have the specified test result",
         InnovationPolymerKind = "Polyethylene",
@@ -77,6 +82,13 @@ public partial class Home : ComponentBase
             }
         }
     };
+
+    /// <summary>
+    /// Currently Analying Patent
+    /// </summary>
+    public Patent AnalyzingPatent { get; set; } = new();
+
+    public Patent ViewingPatent { get; set; } = new();
 
     [Inject]
     public IJSRuntime JS { get; set; }
@@ -135,10 +147,17 @@ public partial class Home : ComponentBase
             this.PythonPredictor = await JS.InvokeAsync<IJSObjectReference>("import",
                 "/pyoide/py-worker.js");
 
+            this.LogMessage = "Loading Patent Cluster Data";
+
+            await ProjectData.Default.EnsurePatentClustersLoaded();
+
+            await ProjectData.Default.LoadDemoWorkspace();
+
+            this.Workspace = ProjectData.Default.DemoWorkspace;
+
             this.LogMessage = null;
         }
     }
-
 
     public async Task ProcessWorkspace()
     {
@@ -209,6 +228,7 @@ public partial class Home : ComponentBase
                 }
             }
 
+            this.Workspace.AIResponse = prompResponse;
         }
         catch (Exception)
         {
@@ -227,11 +247,11 @@ public partial class Home : ComponentBase
 
         // get embedding - using Backend VertexAI Embedding with summary text
 
-        double[] embedding = new double[0];
+        this.Workspace.AIEmbeddingVector = new double[768];
         try
         {
             this.LogMessage = "Getting Similarity Search Vector...";
-            embedding = await PratBackend.Default.Embeddings(new EmbeddingRequest()
+            this.Workspace.AIEmbeddingVector = await PratBackend.Default.Embeddings(new EmbeddingRequest()
             {
                 Content = this.Workspace.AISearchText!
             });
@@ -243,17 +263,27 @@ public partial class Home : ComponentBase
             return;
         }
 
-        this.LogMessage = "Looking for Local Patent Cluster...";
+        this.LogMessage = "Finding Similar Patents using Vector Similarity...";
+        try
+        {
+            this.Workspace.SimilarPatent = await PratBackend.Default.FindSimilarPatent(new SimilaritySearchRequest()
+            {
+                VectorBase64 = this.Workspace.AIEmbeddingVector
+            });
+        }
+        catch (Exception ex)
+        {
+            this.IsBusy = false;
+            _ = this.JS.InvokeVoidAsync("alert", $"Issue communicating with servers, please try again.\r\n\r\n{ex.Message}");
+            return;
+        }
 
-        // get the cluster and coords
-        var featureRequest = new FindClusterRequest(embedding, this.Workspace.AIPatentFlags );
+        this.LogMessage = "Looking for Patent Cluster...";
+        var featureRequest = new FindClusterRequest(this.Workspace.AIEmbeddingVector, this.Workspace.AIPatentFlags );
         var modelInput = JsonConvert.SerializeObject(featureRequest, Formatting.None);
         var result = await this.PythonPredictor.InvokeAsync<string>("runPredictor", modelInput);
 
         var jso = JObject.Parse(result);
-
-        this.Workspace.AIPredictedCluster = jso["result"]["cluster"].ToString();
-
         var coords = new double[] {
                 (double)jso["result"]["visualization_coord"]["0"],
                 (double)jso["result"]["visualization_coord"]["1"],
@@ -262,6 +292,34 @@ public partial class Home : ComponentBase
 
         this.Workspace.AIPredictedVisualizationCoords = coords;
 
+        if (this.IsDemo)
+        {
+            this.Workspace.AIPredictedCluster = "DEMO";
+            this.Workspace.MatchingCluster = new PatentCluster()
+            {
+                PatentApplicationIds = new List<string>()
+                {
+                    "0601000506",
+                    "0701000705",
+                    "1501005841",
+                    "1501005841",
+                    "2101002233",
+                    "2001006704",
+                    "0401000323"
+                },
+                ClusterLabel = "DEMO",
+            };
+        }
+        else
+        {
+            this.Workspace.AIPredictedCluster = jso["result"]["cluster"].ToString();
+
+            await ProjectData.Default.EnsurePatentClustersLoaded();
+            this.Workspace.MatchingCluster = ProjectData.Default.PatentClusters.FirstOrDefault(pc => pc.ClusterLabel == this.Workspace.AIPredictedCluster);
+        }
+
+        await this.SaveWorkspace();
+
         this.IsBusy = false;
         this.LogMessage = null;
     }
@@ -269,5 +327,192 @@ public partial class Home : ComponentBase
     public void SetActiveCluster( string clusterId )
     {
 
+    }
+
+    public async Task SaveWorkspace()
+    {
+        this.IsBusy = true;
+        this.LogMessage = "Saving Workspace...";
+
+        try
+        {
+            await PratBackend.Default.SubmitWorkspace(this.Workspace);
+        }
+        catch (Exception ex)
+        {
+            this.IsBusy = false;
+            _ = this.JS.InvokeVoidAsync("alert", $"Issue communicating with servers, workspace is not saved.\r\n\r\n{ex.Message}");
+            return;
+        }
+
+        this.LogMessage = null;
+        this.IsBusy = false;
+    }
+
+    private Task PromptBackground(Patent p, JObject context, string promptKey)
+    {
+        return Task.Run(async () =>
+        {
+            var result = await PratBackend.Default.Prompt(new PromptRequest()
+            {
+                PromptContext = context,
+                PromptKey = promptKey
+            });
+
+            p.Analysis.PromptResponses[promptKey] = result;
+        });
+    }
+
+    /// <summary>
+    /// Meant to be called by UI to perform analysis on all patents
+    /// </summary>
+    /// <returns></returns>
+    public async Task BeginAnalysis()
+    {
+        this.IsBusy = true;
+
+        var existing = this.Workspace.PatentsToAnalyze.Select(p => p.ApplicationId).ToHashSet();
+
+        foreach (var id in this.Workspace.MatchingCluster.PatentApplicationIds)
+        {
+            if (existing.Contains( id ) == false)
+            {
+                this.Workspace.PatentsToAnalyze.Add(new Patent() { ApplicationId = id });
+            }
+        }
+
+        if (this.IsDemo == false)
+        {
+            foreach (var p in this.Workspace.SimilarPatent)
+            {
+                if (existing.Contains(p.ApplicationId) == false)
+                {
+                    this.Workspace.PatentsToAnalyze.Add(p);
+                }
+            }
+
+        }
+
+        foreach (var patent in this.Workspace.PatentsToAnalyze)
+        {
+            if (patent.Analysis.IsAnalysisCompleted)
+            {
+                continue;
+            }
+
+            try
+            {
+                this.LogMessage = $"AI is Analyzing Patent #{patent.ApplicationId}";
+                await this.AnalyzePatent(patent);
+
+                this.LogMessage = $"Saving Analysis...";
+                await PratBackend.Default.SubmitWorkspace(this.Workspace);
+
+                this.StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                patent.Analysis.IsAnalysisCompleted = false;
+                patent.Analysis.IsAnalyzing = false;
+
+                this.IsBusy = false;
+                _ = this.JS.InvokeVoidAsync("alert", $"Issue communicating with servers, please try again.\r\n\r\n{ex.Message}");
+                return;
+            }
+            
+        }
+
+        this.LogMessage = null;
+        this.IsBusy = false;
+    }
+
+    public async Task AnalyzePatentForUI( Patent p)
+    {
+        this.IsBusy = true;
+
+        try
+        {
+            await this.AnalyzePatent(p);
+
+            await PratBackend.Default.SubmitWorkspace(this.Workspace);
+        }
+        catch (Exception ex)
+        {
+            this.IsBusy = false;
+            _ = this.JS.InvokeVoidAsync("alert", $"Issue communicating with servers, please try again.\r\n\r\n{ex.Message}");
+            return;
+        }
+        finally
+        {
+            p.Analysis.IsAnalyzing = false;
+        }
+
+        this.LogMessage = null;
+        this.IsBusy = false;
+    }
+
+    /// <summary>
+    /// Analyze individual patent
+    /// </summary>
+    /// <param name="p"></param>
+    /// <returns></returns>
+    public async Task AnalyzePatent(Patent p)
+    {
+        p.Analysis.IsAnalyzing = true;
+        this.AnalyzingPatent = p;
+        this.StateHasChanged();
+
+        if (p.PatentClaims == null)
+        {
+            try
+            {
+                await PratBackend.Default.PopulateFromGCS($"patents/{p.ApplicationId}.json.gz", p, true);
+
+                p.Analysis.IsAnalyzing = true;
+                this.StateHasChanged();
+            }
+            catch (Exception)
+            {
+                p.Analysis.IsAnalyzing = false;
+                return;
+            }
+        }
+
+        var promptContext = JObject.FromObject(p);
+
+        this.LogMessage = $"Extraction Main Claim from #{p.ApplicationId}";
+        this.StateHasChanged();
+        await this.PromptBackground(p, promptContext, "EXTRACT_MAIN_CLAIM");
+
+        this.LogMessage = $"Extraction Test Result from #{p.ApplicationId}";
+        this.StateHasChanged();
+        await this.PromptBackground(p, promptContext, "EXTRACT_TEST_RESULT");
+
+        this.LogMessage = $"Extraction Polymer Features from #{p.ApplicationId}";
+        this.StateHasChanged();
+        await this.PromptBackground(p, promptContext, "EXTRACT_POLYMER_FEATURE");
+
+        p.Analysis.PopulateStandaloneClaim();
+        p.Analysis.PopulatePolymerFeatures();
+        p.Analysis.PopulateMaterialAttributes();
+
+        p.Analysis.IsAnalyzing = false;
+        p.Analysis.IsAnalysisCompleted = true;
+        this.LogMessage = $"Analysis of #{p.ApplicationId} completed";
+        this.StateHasChanged();
+
+    }
+
+    public void ViewPatent( Patent p)
+    {
+        this.ViewingPatent = p;
+        this.StateHasChanged();
+
+        _ = this.JS.InvokeVoidAsync("showModal", "#viewingPatentModal");
+    }
+
+    public void LoadIframe( string iframeId, string src)
+    {
+        _ = this.JS.InvokeVoidAsync("navigateIframe", iframeId, src);
     }
 }

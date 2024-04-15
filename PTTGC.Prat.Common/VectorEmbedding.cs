@@ -16,11 +16,6 @@ public class VectorEmbedding
 
     private void Decompress()
     {
-        if (_Vector != null)
-        {
-            return;
-        }
-
         try
         {
             _Vector = VectorEmbedding.Decode(_Encoded);
@@ -174,6 +169,17 @@ public class VectorEmbedding
     }
 
     #endregion
+
+    public VectorEmbedding()
+    {
+
+    }
+
+    public VectorEmbedding(string vectorBase64)
+    {
+        _Encoded = vectorBase64;
+        this.Decompress();
+    }
 
     public class VectorEmbeddingConverter : JsonConverter<VectorEmbedding>
     {

@@ -299,6 +299,32 @@
 .research .stats > div.high h3 {
   color: #F05423;
 }
+.patents .source {
+  border: 1px solid silver;
+  border-radius: 8px;
+  padding: 12px;
+}
+.patentlist {
+  align-items: stretch;
+  justify-content: center;
+}
+.patentlist > div {
+  border: 1px solid silver;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+}
+.patentlist > div > div.summary {
+  overflow: clip;
+}
+.patentlist > div > div:first-child h5 {
+  flex-grow: 1;
+}
+.patentlist > div > div:first-child div {
+  text-align: right;
+}
 .collapsible {
   overflow: clip;
   max-height: 0;

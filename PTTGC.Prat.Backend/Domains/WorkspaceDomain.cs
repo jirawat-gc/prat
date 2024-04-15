@@ -29,7 +29,7 @@ public static class WorkspaceDomain
     /// </summary>
     /// <param name="ws"></param>
     /// <returns></returns>
-    public static async Task<Workspace> SubmitWorkspace( Workspace ws )
+    public static async Task<Workspace> SaveWorkspace( Workspace ws )
     {
         // Create workspace in Google Cloud Storage
 

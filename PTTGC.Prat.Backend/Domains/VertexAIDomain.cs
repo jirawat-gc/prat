@@ -8,6 +8,7 @@ using PTTGC.Prat.Common;
 using PTTGC.Prat.Common.Requests;
 using System.Diagnostics;
 using System.Text;
+using static Google.Cloud.AIPlatform.V1.Candidate.Types;
 using CompiledTemplate = HandlebarsDotNet.HandlebarsTemplate<object, object>;
 using Value = Google.Protobuf.WellKnownTypes.Value;
 
@@ -27,13 +28,13 @@ public static partial class VertexAIDomain
 
         _Regions = new string[]
         {
-            "us-central1",
-            "us-west4",
-            "us-east4",
-            "us-west1",
-            "asia-northeast3",
-            //"asia-southeast1", -- used by BigQuery
-            "asia-northeast1",
+            //"asia-northeast3",
+            "asia-southeast1", 
+            //"asia-northeast1",
+            //"us-central1",
+            //"us-west4",
+            //"us-east4",
+            //"us-west1",
         };
 
         _Clients = _Regions.Select(r =>
@@ -137,18 +138,23 @@ public static partial class VertexAIDomain
         };
         generateContentRequest.Contents.Add(content);
 
-        // Make the request, returning a streaming response
-        using PredictionServiceClient.StreamGenerateContentStream response = client.StreamGenerateContent(generateContentRequest);
+        var retry = 0;
+        Again:
+        GenerateContentResponse response = await client.GenerateContentAsync(generateContentRequest);
 
-        StringBuilder fullText = new();
-
-        AsyncResponseStream<GenerateContentResponse> responseStream = response.GetResponseStream();
-        await foreach (GenerateContentResponse responseItem in responseStream)
+        if ( response.Candidates[0].FinishReason == FinishReason.Safety )
         {
-            fullText.Append(responseItem.Candidates[0].Content.Parts[0].Text);
-        }
+            retry++;
 
-        return fullText.ToString();
+            if (retry > 3)
+            {
+                throw new InvalidOperationException("Issue with Content Safety");
+            }
+
+            goto Again;
+        }
+        
+        return response.Candidates[0].Content.Parts[0].Text;
     }
 
     /// <summary>

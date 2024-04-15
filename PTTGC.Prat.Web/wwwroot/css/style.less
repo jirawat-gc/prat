@@ -162,6 +162,38 @@
     }
 }
 
+.patents {
+    
+    .source {
+        .bordered(silver);
+    }
+}
+
+.patentlist {;
+    align-items: stretch;
+    justify-content: center;
+
+    > div {
+        .bordered(silver);
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 16px;
+
+        > div.summary {
+            overflow: clip;
+        }
+
+        > div:first-child {
+            h5 {
+                flex-grow: 1;
+            }
+
+            div {
+                text-align: right;
+            }
+        }
+    }
+}
 
 .collapsible {
     overflow: clip;
@@ -255,3 +287,7 @@ div.progressgradient {
     inherits: false;
 }
 
+#viewingPatentModal {
+    .modal-body {
+    }
+}

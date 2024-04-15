@@ -28,7 +28,7 @@ public class WorkspaceDomainTest
     [TestMethod]
     public async Task Submit()
     {
-        var result = await WorkspaceDomain.SubmitWorkspace(new Workspace() {
+        var result = await WorkspaceDomain.SaveWorkspace(new Workspace() {
             InnovationTitle = "test innovation",
             InnovationDescription = "test description"
         });
@@ -37,7 +37,7 @@ public class WorkspaceDomainTest
     [TestMethod]
     public async Task Load()
     {
-        var result = await WorkspaceDomain.SubmitWorkspace(new Workspace()
+        var result = await WorkspaceDomain.SaveWorkspace(new Workspace()
         {
             InnovationTitle = "test innovation",
             InnovationDescription = "test description"

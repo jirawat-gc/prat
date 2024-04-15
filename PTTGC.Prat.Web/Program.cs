@@ -39,6 +39,7 @@ public class Program
         platformUrl = "http://localhost:7253/";
 #endif
         PratBackend.Default.BaseAddress = platformUrl;
+        PratBackend.Default.GCSBaseAddress = builder.Configuration.GetValue<string>("GCSBaseAddress");
 
         await builder.Build().RunAsync();
     }
