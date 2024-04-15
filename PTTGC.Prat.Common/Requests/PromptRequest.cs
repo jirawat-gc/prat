@@ -17,4 +17,9 @@ public class PromptRequest
     public string PromptKey { get; set; }
 
     public JObject PromptContext { get; set; }
+
+    /// <summary>
+    /// Request to specified vertex ai region
+    /// </summary>
+    public string Region { get; set; }
 }

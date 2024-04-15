@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using PTTGC.Prat.Backend.Domains;
 using PTTGC.Prat.Common;
 using PTTGC.Prat.Common.Requests;
@@ -26,8 +28,8 @@ public class Program
         return new GenericResponse<TResult>()
         {
             data = result,
-            code = errorDetail.code,
-            message = errorDetail.message,
+            code = errorDetail?.code ?? 2000,
+            message = errorDetail?.message,
         };
     }
 
@@ -41,6 +43,7 @@ public class Program
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
+        builder.Services.AddCors();
 
         builder.Configuration.Bind(Settings.Instance);
 
@@ -51,12 +54,40 @@ public class Program
         {
             app.UseSwagger();
             app.UseSwaggerUI();
+            app.UseCors(builder => builder
+                .AllowAnyOrigin()
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+            );
+        }
+        else
+        {
+            app.UseCors(builder => builder
+                .WithOrigins(
+                    "https://prat.askmex.com",
+                    "http://localhost:5198")
+                .AllowAnyHeader()
+                .AllowAnyHeader()
+            );
         }
 
-        app.MapPost("/workspace", async (Workspace ws, HttpContext ctx) =>
+        // we like Newtonsoft JSON more than System.Text.Json
+        Func<HttpContext, Task<JObject>> readBodyAsJSON = async (ctx) =>
+        {
+            using var sr = new StreamReader(ctx.Request.Body);
+            using var jr = new JsonTextReader(sr);
+
+            var jo = await JObject.ReadFromAsync(jr);
+            return jo as JObject;
+        };
+
+        app.MapPost("/workspace", async (HttpContext ctx) =>
         {
             return await HandleRequest(ctx, async () =>
             {
+                var jo = await readBodyAsJSON(ctx);
+                var ws = jo.ToObject<Workspace>()!;
+
                 // submit workspace for processing
                 var processedWorkspace = await WorkspaceDomain.SubmitWorkspace(ws);
                 return processedWorkspace;
@@ -76,22 +107,13 @@ public class Program
         .WithName("Get Signed URLs to load patent clusters")
         .WithOpenApi();
 
-        app.MapPost("/findcluster", async (FindClusterRequest fcr, HttpContext ctx) =>
+        app.MapPost("/prompt", async (HttpContext ctx) =>
         {
             return await HandleRequest(ctx, async () =>
             {
-                // submit workspace for processing
-                var localCluster = await PatentClusterDomain.GetLocalCluster(fcr.EmbeddingVector, fcr.FeatureFlags);
-                return localCluster;
-            });
-        })
-        .WithName("Find Local Cluster")
-        .WithOpenApi();
+                var jo = await readBodyAsJSON(ctx);
+                var p = jo.ToObject<PromptRequest>()!;
 
-        app.MapPost("/prompt", async (PromptRequest p, HttpContext ctx) =>
-        {
-            return await HandleRequest(ctx, async () =>
-            {
                 var response = await VertexAIDomain.GetCompletion(p);
                 return response;
             });
@@ -99,10 +121,13 @@ public class Program
         .WithName("Perform Text Generation with Prompt")
         .WithOpenApi();
 
-        app.MapPost("/embeddings", async (EmbeddingRequest emb, HttpContext ctx) =>
+        app.MapPost("/embeddings", async (HttpContext ctx) =>
         {
             return await HandleRequest(ctx, async () =>
             {
+                var jo = await readBodyAsJSON(ctx);
+                var emb = jo.ToObject<EmbeddingRequest>()!;
+
                 var response = await VertexAIDomain.GetEmbeddings(emb.Content);
                 return response;
             });

@@ -13,7 +13,7 @@ using Value = Google.Protobuf.WellKnownTypes.Value;
 
 namespace PTTGC.Prat.Backend.Domains;
 
-public static class VertexAIDomain
+public static partial class VertexAIDomain
 {
     private static IHandlebars? templateEngine;
 
@@ -32,7 +32,7 @@ public static class VertexAIDomain
             "us-east4",
             "us-west1",
             "asia-northeast3",
-            "asia-southeast1",
+            //"asia-southeast1", -- used by BigQuery
             "asia-northeast1",
         };
 
@@ -55,8 +55,9 @@ public static class VertexAIDomain
         // in first version - use from memory, make it configurable later
         var toReturn = new Dictionary<string, string>();
 
-        // load here
-        toReturn["DEBUG"] = "{{prompt_text}}";
+        // in real code, we will load prompts from configuration file in GCS
+        // but for POC the prompt is hard-coded to reduce moving parts
+        AddPromptsPOC(toReturn);
 
         // compile templates
 
@@ -121,9 +122,11 @@ public static class VertexAIDomain
             }
         });
 
+        var region = req.Region ?? _Regions[regionIndex];
+
         var generateContentRequest = new GenerateContentRequest
         {
-            Model = $"projects/{Settings.Instance.GCPProjectId}/locations/{_Regions[regionIndex]}/publishers/google/models/{Settings.Instance.GeminiModel}",
+            Model = $"projects/{Settings.Instance.GCPProjectId}/locations/{region}/publishers/google/models/{Settings.Instance.GeminiModel}",
             GenerationConfig = new GenerationConfig
             {
                 Temperature = req.Temperature,

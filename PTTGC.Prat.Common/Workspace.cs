@@ -1,4 +1,5 @@
 ﻿
+using Newtonsoft.Json.Linq;
 using PTTGC.Prat.Common;
 
 namespace PTTGC.Prat.Core
@@ -25,6 +26,14 @@ namespace PTTGC.Prat.Core
         /// </summary>
         public string InnovationDescription { get; set; }
 
+        public bool InnovationIsPolymer { get; set; }
+
+        public string InnovationPolymerKind { get; set; }
+
+        public string InnovationApplication { get; set; }
+
+        public string InnovationComonomer { get; set; }
+
         /// <summary>
         /// Flags as set on Frontend
         /// </summary>
@@ -34,6 +43,11 @@ namespace PTTGC.Prat.Core
         /// List of Material Attributes related to this innovation
         /// </summary>
         public List<MaterialAttribute> MaterialAttributes { get; set; } = new();
+
+        /// <summary>
+        /// Whether the innovation has material test result
+        /// </summary>
+        public bool InnovationIncludeTestResults { get; set; }
 
         /// <summary>
         /// Summary of the text for search by AI
@@ -58,7 +72,7 @@ namespace PTTGC.Prat.Core
         /// <summary>
         /// Flag as processed by AI
         /// </summary>
-        public Dictionary<string, string> AIPatentFlags { get; set; } = new();
+        public Dictionary<string, bool> AIPatentFlags { get; set; } = new();
 
         /// <summary>
         /// The cluster which matches this innovation
@@ -69,5 +83,25 @@ namespace PTTGC.Prat.Core
         /// Patent that was analyzed as part of this workspace
         /// </summary>
         public List<Patent> AnalyzedPatents { get; set; } = new();
+
+        /// <summary>
+        /// Gets the prompt context from workspace
+        /// </summary>
+        /// <returns></returns>
+        public JObject GetPromptContext()
+        {
+            var jo = JObject.FromObject(this);
+            var whitelist = "InnovationTitle,InnovationDescription,InnovationApplication,InnovationIncludeTestResults,MaterialAttributes,InnovationIsPolymer,InnovationPolymerKind,InnovationComonomer,";
+
+            foreach (var prop in jo.Properties().Select( p => p.Name ).ToList())
+            {
+                if (whitelist.Contains($"{prop},") == false)
+                {
+                    jo.Remove(prop);
+                }
+            }
+
+            return jo;
+        }
     }
 }

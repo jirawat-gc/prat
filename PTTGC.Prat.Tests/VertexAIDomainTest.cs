@@ -19,17 +19,32 @@ public class VertexAIDomainTest
     [TestMethod]
     public async Task Completion()
     {
-        var result = await VertexAIDomain.GetCompletion(new PromptRequest()
+        var region = new string[]
         {
-            PromptKey = "DEBUG",
-            PromptContext = JObject.FromObject( new
-            {
-                prompt_text = "this is a test, respond with OK"
-            }),
-            MaxTokens = 10,
-        });
+            "us-central1",
+            "us-west4",
+            "us-east4",
+            "us-west1",
+            "asia-northeast3",
+            //"asia-southeast1",
+            "asia-northeast1",
+        };
 
-        Assert.IsTrue(result.ToLowerInvariant().Contains("ok"));
+        foreach (var item in region)
+        {
+            var result = await VertexAIDomain.GetCompletion(new PromptRequest()
+            {
+                PromptKey = "DEBUG",
+                PromptContext = JObject.FromObject(new
+                {
+                    prompt_text = "this is a test, respond with OK"
+                }),
+                MaxTokens = 10,
+                Region = item,
+            });
+
+            Assert.IsTrue(result.ToLowerInvariant().Contains("ok"));
+        }
     }
 
     [TestMethod]

@@ -6,9 +6,9 @@
 
         public string AttributeName { get; set; }
 
-        public float? MinRange { get; set; }
+        public float? LowerBound { get; set; }
 
-        public float? MaxRange { get; set; }
+        public float? UpperBound { get; set; }
 
         public string MeasurementUnit { get; set; }
     }

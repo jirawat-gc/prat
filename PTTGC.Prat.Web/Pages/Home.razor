@@ -1,142 +1,334 @@
 ﻿@page "/"
 
-<div class="aiapp-container">
+<div class="aiapp-header d-flex p-2">
 
-    <div class="aiapp-block">
+    <img src="/images/logo_askmegc.svg" style="width: 100px" />
 
-        <h1>PRAT</h1>
+    <h1 class="ms-2">
+        PRAT
+    </h1>
 
-        <input type="text"
-               @bind="this.Workspace.InnovationTitle" />
+    <div class="flex-fill ms-4 me-4 align-self-center">
 
-        <textarea class="form-control"
-                  @bind="this.Workspace.InnovationDescription">
+        <div class="progressgradient p-2 text-center w-50 fading @(Helper.ShowIf(this.IsBusy))"
+             style="margin: auto auto; min-height: 2em">
+            @(this.LogMessage)
+        </div>
 
-        </textarea>
+    </div>
+    <div class="user">
+        JP
+    </div>
 
-        <div>
+</div>
 
-            @foreach( var key in new string[] { "Polymer", "Olefins", "Aromatics", "Green Chemicals", "EO-based performance", "High volume speciality" })
-            {
-                var fixedKey = this.FixFlagKey(key);
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox"
-                           @onchange="@(c => this.Workspace.InnovationFlags[fixedKey] = (bool)c.Value)"
-                           value=@this.Workspace.InnovationFlags.Get(fixedKey)>
+<div class="container-fluid aiapp-container">
+    <div class="row">
 
-                    <label class="form-check-label">
-                        @(key)
-                    </label>
-                </div>
-            }
+        <div class="sidebar col-lg-2 pt-4">
+
+            <b class="text">
+                History
+            </b>
 
         </div>
 
-        <div class="chemical-attributes">
+        <div class="new col-lg-4 pt-4 pb-4 ps-4">
 
-            @foreach (var item in this.Workspace.MaterialAttributes)
-            {
-                <div class="input-group mb-3">
+            <div class="aiapp-block">
 
-                    <input type="text" class="form-control"
-                           @bind="item.MaterialName">
+                <div class="d-flex mb-4">
 
-                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        @(item.AttributeName ?? "(Select Attribute)")
+                    <h2 class="flex-fill">
+                        Your New Innovation
+                    </h2>
+
+                    <button class="btn btn-lg btn-success disabling @(Helper.ActiveIf(this.IsBusy))"
+                            @onclick="this.ProcessWorkspace">
+                        Discover
+                        <i class="bi bi-arrow-right-circle ms-2"></i>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end">
 
-                        @foreach (var attr in _CommonAttributes)
-                        {
+                </div>
+
+                <div class="form-floating mb-3">
+                    <textarea id="innovationTitle" style="height: 100px"
+                           class="form-control form-control-lg"
+                           @bind="this.Workspace.InnovationTitle">
+                    </textarea>
+                    <label for="innovationTitle">Innovation Title</label>
+                </div>
+
+                <div class="form-floating mt-1">
+                    <textarea class="form-control mt-1" style="height: 150px"
+                              @bind="this.Workspace.InnovationDescription">
+                    </textarea>
+                    <label for="floatingTextarea">Description</label>
+                </div>
+
+                <div class="form-floating mt-1">
+                    <textarea class="form-control mt-1" style="height: 150px"
+                              @bind="this.Workspace.InnovationApplication">
+                    </textarea>
+                    <label for="floatingTextarea">Application for this innovation</label>
+                </div>
+
+                <div class="mt-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox"
+                               @bind="this.Workspace.InnovationIsPolymer">
+                        <label class="form-check-label">Innovation is Polymer</label>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox"
+                               @bind="this.Workspace.InnovationIncludeTestResults" />
+                        <label class="form-check-label">Specify Test Results</label>
+                    </div>
+                </div>
+
+                <div class="polymer-attributes mt-4 collapsible @(Helper.ShowIf(this.Workspace.InnovationIsPolymer))" id="polymerattribute">
+
+                    <div class="fw-bold mb-1">
+                        Polymer Information
+                    </div>
+                    <div class="d-flex">
+                        <div class="form-floating flex-fill">
+                            <input type="text" id="innovationPolymerKind"
+                                   class="form-control"
+                                   @bind="this.Workspace.InnovationPolymerKind" />
+                            <label for="innovationPolymerKind">Polymer Kind</label>
+                        </div>
+
+                        <div class="form-floating flex-fill ms-3">
+                            <input type="text" id="innovationPolymerComoner"
+                                   class="form-control"
+                                   @bind="this.Workspace.InnovationComonomer" />
+                            <label for="innovationPolymerComoner">Polymer Comonomer</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chemical-attributes mt-2 collapsible @(Helper.ShowIf(this.Workspace.InnovationIncludeTestResults))" id="chemattribute">
+
+                    <div class="new-attribute">
+
+                        <button class="btn btn-outline-secondary dropdown-toggle mb-1 d-block text-start" type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                                style="min-width: 200px">
+                            @(this.NewMaterialAttributeItem.AttributeName ?? "(Select Attribute)")
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end p-2">
+
                             <li>
-                                <a class="dropdown-item" href="#"--------
-                                   @onclick="() => this.ChangeMaterialAttribute(item, attr)">
-                                    @(attr.attribute)
-                                </a>
+                                <input type="text" class="form-control"
+                                       @bind="this.NewMaterialAttributeItem.AttributeName"
+                                       @bind:event="oninput"
+                                       placeholder="Custom Attribute" />
                             </li>
-                        }
+                            <li><hr class="dropdown-divider"></li>
 
-                        <li><hr class="dropdown-divider"></li>
-                        <li>
-                            <input type="text" class="form-control"
-                                   @bind="item.AttributeName"
-                                   placeholder="Attribute" />
-                        </li>
-                    </ul>
+                            @foreach (var attr in _CommonAttributes.OrderBy(a => a.attribute))
+                            {
+                                <li>
+                                    <div class="dropdown-item" href="#"
+                                         @onclick="() => this.ChangeMaterialAttribute(this.NewMaterialAttributeItem, attr)">
+                                        @(attr.attribute)
+                                    </div>
+                                </li>
+                            }
 
+                        </ul>
 
-                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        @if (item.MinRange != null && item.MaxRange != null)
-                        {
-                            @($"{item.MinRange} - {item.MaxRange}")
-                        }
-                        else if (item.MinRange != null)
-                        {
-                            @($"≥ {item.MinRange}")
-                        }
-                        else if (item.MaxRange != null)
-                        {
-                            @($"≤ {item.MaxRange}")
-                        }
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end">
+                        <div class="input-group w-100">
 
-                        <li>
                             <input type="number" class="form-control"
-                                   @bind="item.MinRange"
-                                   placeholder="Enter Attribute" />
-                        </li>
+                                   @bind="this.NewMaterialAttributeItem.LowerBound"
+                                   placeholder="Lower Bound" />
 
-                        <li><hr class="dropdown-divider"></li>
-
-                        <li>
                             <input type="number" class="form-control"
-                                   @bind="item.MaxRange"
-                                   placeholder="Enter Attribute" />
-                        </li>
-                    </ul>
+                                   @bind="this.NewMaterialAttributeItem.UpperBound"
+                                   placeholder="Upper Bound" />
 
 
-                    <span class="input-group-text">
-                        @if (this.IsCustomAttribute(item))
-                        {
-                            <input type="text" class="form-control"
-                                   @bind="item.MeasurementUnit"
-                            placeholder="Unit" />
-                        }
-                        else
-                        {
-                            @(item.MeasurementUnit)
-                        }
-                    </span>
+                            <span class="input-group-text" style="width: 25%">
+                                @if (this.IsCustomAttribute(this.NewMaterialAttributeItem))
+                                {
+                                    <input type="text" class="form-control"
+                                           @bind="this.NewMaterialAttributeItem.MeasurementUnit"
+                                           placeholder="Unit" />
+                                }
+                                else
+                                {
+                                    @(this.NewMaterialAttributeItem.MeasurementUnit)
+                                }
+                            </span>
+
+                            <button class="btn btn-success disabling @(Helper.ActiveIf(this.IsBusy))">
+                                <i class="bi bi-plus-circle"></i>
+                            </button>
+                        </div>
+
+
+                    </div>
+
+                    <hr />
+
+                    @foreach (var item in this.Workspace.MaterialAttributes)
+                    {
+                        <div class="mb-3">
+
+                            <div class="fw-bold mb-1">
+                                @(item.AttributeName)
+                            </div>
+
+                            <div class="input-group w-100">
+
+                                <input type="number" class="form-control"
+                                       @bind="item.LowerBound"
+                                       placeholder="Enter Attribute" />
+
+                                <input type="number" class="form-control"
+                                       @bind="item.UpperBound"
+                                       placeholder="Enter Attribute" />
+
+
+                                <span class="input-group-text" style="width: 25%">
+                                    @if (this.IsCustomAttribute(item))
+                                    {
+                                        <input type="text" class="form-control"
+                                               @bind="item.MeasurementUnit"
+                                               placeholder="Unit" />
+                                    }
+                                    else
+                                    {
+                                        @(item.MeasurementUnit)
+                                    }
+                                </span>
+
+                                <button class="btn btn-outline-secondary disabling @(Helper.ActiveIf(this.IsBusy))">
+                                    <i class="bi bi-x-circle"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                    }
+
+
 
                 </div>
-            }
-
-        </div>
-
-    </div>
-
-    <div class="aiapp-block mt-4">
-
-        <div class="header d-flex">
-
-            <div class="logo">
-                PRAT
-            </div>
-
-            <div class="workspaceinfo">
-
-                <h2>
-                    @(this.Workspace.InnovationTitle)
-                </h2>
 
             </div>
 
         </div>
 
+        <div class="research col-lg-6 pt-4 pb-4">
+
+            <div class="aiapp-block">
+
+                <div class="tags mb-2">
+
+                    @foreach (var item in this.Workspace.AIPatentFlags)
+                    {
+                        if (item.Value)
+                        {
+                            <span class="badge bg-primary me-1">
+                                @item.Key
+                            </span>
+                        }
+                    }
+
+                </div>
+
+                <div class="clusterview d-flex">
+
+                    <div class="scatterplot flex-fill">
+                    </div>
+
+                    <div class="sample p-2 w-25">
+
+                        <div class="@(this.Workspace.AIPredictedCluster == "-1" ? "outlier" : "")">
+                            <h3>
+                                @(this.Workspace.AIPredictedCluster == "-1" ? "(Outlier)" : this.Workspace.AIPredictedCluster)
+                            </h3>
+                            Predicted Cluster
+                        </div>
+
+                        <div>
+                            <h3>
+                                @($"{this.Workspace.AIPredictedVisualizationCoords[0]:0.00}"),<br/>
+                                @($"{this.Workspace.AIPredictedVisualizationCoords[1]:0.00}"),<br />
+                                @($"{this.Workspace.AIPredictedVisualizationCoords[2]:0.00}")
+                            </h3>
+                            Predicted Coords
+                        </div>
+
+                    </div>
+                </div>
+
+
+                <div class="stats">
+
+                    <div class="stat">
+                        <h3>
+                            5
+                        </h3>
+                        <div>
+                            in cluster
+                        </div>
+                    </div>
+
+                    <div class="stat">
+                        <h3>
+                            10
+                        </h3>
+                        <div>
+                            Similar,
+                            <br/>> 70%
+                        </div>
+                    </div>
+
+                    <div class="low">
+                        <h3>
+                            10
+                        </h3>
+                        <div>
+                            Low
+                            <br />Risk
+                        </div>
+                    </div>
+
+                    <div class="medium">
+                        <h3>
+                            10
+                        </h3>
+                        <div>
+                            Medium
+                            <br/>Risk
+                        </div>
+                    </div>
+
+                    <div class="high">
+                        <h3>
+                            10
+                        </h3>
+                        <div>
+                            High
+                            <br />Risk
+                        </div>
+                    </div>
+                </div>
+
+
+
+            </div>
+
+            <div class="aiapp-block mt-2">
+
+            </div>
+
+        </div>
 
     </div>
-
-
 </div>

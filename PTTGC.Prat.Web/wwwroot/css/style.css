@@ -195,6 +195,7 @@
   --font-family-Inter: 'DB Heavent';
   --font-family-Roboto: 'DB Heavent';
   --dex-gradient: linear-gradient(90deg, #21d3ee 0%, #589cf6 38%, #757efa 90%, #5460fd 100%);
+  --dex-gradient-angled: linear-gradient(60deg, #21d3ee 0%, #589cf6 38%, #757efa 90%, #5460fd 100%);
   --dex-gradient-small: linear-gradient(90deg, #21d3ee 0%, #589cf6 60%, #757efa 95%);
   --color-translucentblue: rgba(0, 175, 242, 0.13);
   --gc-blue: #025FAC;
@@ -242,4 +243,134 @@
 }
 .aiapp-container .common-app-header h1 {
   color: var(--gc-blue);
+}
+.research .clusterview .scatterplot {
+  background-color: silver;
+  height: 430px;
+}
+.research .clusterview .sample > div {
+  border: 1px solid silver;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.research .clusterview .sample > div.outlier {
+  border-color: #BF1E8E;
+  box-shadow: 0 0 4px rgba(191, 30, 142, 0.5);
+}
+.research .clusterview .sample > div.outlier h3 {
+  color: #BF1E8E;
+}
+.research .stats {
+  display: flex;
+  gap: 16px;
+  margin-top: 24px;
+}
+.research .stats > div {
+  flex-grow: 1;
+  display: flex;
+  border: 1px solid silver;
+  border-radius: 8px;
+  padding: 12px;
+}
+.research .stats > div h3 {
+  font-weight: 400;
+  font-size: 200%;
+  margin-right: 12px;
+}
+.research .stats > div.low {
+  border-color: #01A951;
+  box-shadow: 0 0 4px rgba(1, 169, 81, 0.5);
+}
+.research .stats > div.low h3 {
+  color: #01A951;
+}
+.research .stats > div.medium {
+  border-color: #665FAC;
+  box-shadow: 0 0 4px rgba(102, 95, 172, 0.5);
+}
+.research .stats > div.medium h3 {
+  color: #665FAC;
+}
+.research .stats > div.high {
+  border-color: #F05423;
+  box-shadow: 0 0 4px rgba(240, 84, 35, 0.5);
+}
+.research .stats > div.high h3 {
+  color: #F05423;
+}
+.collapsible {
+  overflow: clip;
+  max-height: 0;
+  opacity: 0;
+  transition: all ease-out 0.5s;
+}
+.collapsible.show {
+  max-height: 1000px;
+  opacity: 1;
+}
+.fading {
+  opacity: 0;
+  transition: all ease-out 0.5s;
+}
+.fading.show {
+  opacity: 1;
+}
+.switchable {
+  visibility: collapse;
+  opacity: 0;
+  transition: all ease-out 0.5s;
+}
+.switchable.show {
+  visibility: unset;
+  opacity: 1;
+}
+.disabling {
+  transition: all linear 0.5s;
+}
+.disabling.show {
+  filter: grayscale() brightness(1.2);
+  pointer-events: none;
+}
+.dropdown-menu.show {
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: brightness(1.5) blur(10px);
+  box-shadow: 0 0 10px white;
+}
+.dropdown-menu.show .dropdown-item {
+  cursor: pointer;
+  user-select: none;
+}
+.dropdown-menu.show .dropdown-item:hover {
+  background-color: #29ace2;
+  color: white;
+}
+.dropdown-toggle::after {
+  float: right;
+  position: relative;
+  top: 10px;
+}
+.sidebar {
+  background: var(--dex-gradient-angled);
+  color: white;
+}
+.aiapp-header {
+  box-shadow: 0 0 60px rgba(41, 172, 226, 0.3);
+}
+div.progressgradient {
+  --angle: 0deg;
+  border: 2px solid;
+  border-radius: 8px;
+  border-image: conic-gradient(from var(--angle), #BF1E8E, #29ace2, #29ace2) 1;
+  animation: 2s rotate linear infinite;
+}
+@keyframes rotate {
+  to {
+    --angle: 360deg;
+  }
+}
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
 }

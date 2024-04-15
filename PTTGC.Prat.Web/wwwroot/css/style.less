@@ -33,6 +33,7 @@
     --font-family-Inter: 'DB Heavent';
     --font-family-Roboto: 'DB Heavent';
     --dex-gradient: linear-gradient(90deg, rgba(33,211,238,1) 0%, rgba(88,156,246,1) 38%, rgba(117,126,250,1) 90%, rgba(84,96,253,1) 100%);
+    --dex-gradient-angled: linear-gradient(60deg, rgba(33,211,238,1) 0%, rgba(88,156,246,1) 38%, rgba(117,126,250,1) 90%, rgba(84,96,253,1) 100%);
     --dex-gradient-small: linear-gradient(90deg, rgba(33,211,238,1) 0%, rgba(88,156,246,1) 60%, rgba(117,126,250,1) 95%);
     --color-translucentblue: rgba(0,175,242,0.13);
     --gc-blue: #025FAC;
@@ -91,3 +92,166 @@
         }
     }
 }
+
+.bordered(@color) {
+    border: 1px solid @color;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.colortheme (@theme) {
+    border-color: @theme;
+    box-shadow: 0 0 4px fade(@theme, 50%);
+
+    h3 {
+        color: @theme;
+    }
+}
+
+.research {
+
+    .clusterview {
+
+        .scatterplot {
+            background-color: silver;
+            height: 430px;
+        }
+
+        .sample {
+
+            > div {
+                .bordered(silver);
+                margin-bottom: 12px;
+
+                &.outlier {
+                    .colortheme( @gc-ruby);
+                }
+            }
+        }
+    }
+
+    .stats {
+        display: flex;
+        gap: 16px;
+        margin-top: 24px;
+
+        > div {
+            flex-grow: 1;
+            display: flex;
+
+            .bordered(silver);
+
+            h3 {
+                font-weight: 400;
+                font-size: 200%;
+                margin-right: 12px;
+            }
+
+            &.low {
+                .colortheme(@gc-copper-chloride);
+            }
+
+            &.medium {
+                .colortheme(@gc-ultra-violet);
+            }
+
+            &.high {
+                .colortheme(@gc-flame);
+            }
+        }
+    }
+}
+
+
+.collapsible {
+    overflow: clip;
+    max-height: 0;
+    opacity: 0;
+    transition: all ease-out 0.5s;
+
+    &.show {
+        max-height: 1000px;
+        opacity: 1;
+    }
+}
+
+.fading {
+    opacity: 0;
+    transition: all ease-out 0.5s;
+
+    &.show {
+        opacity: 1;
+    }
+}
+
+.switchable {
+    visibility: collapse;
+    opacity: 0;
+    transition: all ease-out 0.5s;
+
+    &.show {
+        visibility: unset;
+        opacity: 1;
+    }
+}
+
+.disabling {
+    transition: all linear 0.5s;
+
+    &.show {
+        filter: grayscale() brightness(1.2);
+        pointer-events: none;
+    }
+}
+
+.dropdown-menu.show {
+    background-color: fade(white, 80%);
+    backdrop-filter: brightness(1.5) blur(10px);
+    box-shadow: 0 0 10px white;
+
+    .dropdown-item {
+        cursor: pointer;
+        user-select: none;
+
+        &:hover {
+            background-color: @gc-bright-blue;
+            color: white;
+        }
+    }
+}
+
+.dropdown-toggle::after {
+    float: right;
+    position: relative;
+    top: 10px;
+}
+
+.sidebar {
+    background: var(--dex-gradient-angled);
+    color: white;
+}
+
+.aiapp-header {
+    box-shadow: 0 0 60px fade(@gc-bright-blue, 30%);
+}
+
+div.progressgradient {
+    --angle: 0deg;
+    border: 2px solid;
+    border-radius: 8px;
+    border-image: conic-gradient(from var(--angle), @gc-ruby, @gc-bright-blue, @gc-bright-blue) 1;
+    animation: 2s rotate linear infinite;
+}
+
+@keyframes rotate {
+    to {
+        --angle: 360deg;
+    }
+}
+
+@property --angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+}
+

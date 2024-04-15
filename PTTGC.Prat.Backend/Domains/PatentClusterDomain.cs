@@ -24,26 +24,6 @@ public static class PatentClusterDomain
         _Signer = signerClient.CreateUrlSigner();
     }
 
-    /// <summary>
-    /// Gets the local cluster of given innovation
-    /// </summary>
-    /// <param name="innovationDescription"></param>
-    /// <param name="innovationFlags"></param>
-    /// <returns></returns>
-    public static async Task<PatentCluster> GetLocalCluster(double[] embeddingVector, double[] innovationFlags)
-    {
-        
-        // scale the data to 0/1 based on
-
-        // run the Vertex AI Custom DBSCAN model to find our cluster
-
-        // perform similarity 
-
-        // return the matching cluster
-
-        return new PatentCluster();
-    }
-
     private static PatentClusterSignedUrlsData _SignedUrlCache = new();
 
     public static async Task<PatentClusterSignedUrlsData> GetPatentClusterSignedUrls()

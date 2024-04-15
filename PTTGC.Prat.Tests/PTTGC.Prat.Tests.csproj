@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -7,6 +7,7 @@
 
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
 
   <ItemGroup>
@@ -38,6 +39,7 @@
   <ItemGroup>
     <ProjectReference Include="..\PTTGC.Prat.Backend\PTTGC.Prat.Backend.csproj" />
     <ProjectReference Include="..\PTTGC.Prat.Common\PTTGC.Prat.Common.csproj" />
+    <ProjectReference Include="..\PTTGC.Prat.Web\PTTGC.Prat.Web.csproj" />
   </ItemGroup>
 
   <ItemGroup>
