@@ -336,6 +336,26 @@
   font-size: 150%;
   margin: 0;
 }
+.patentlist > div .analysis > .btn-group {
+  padding: 0;
+  background-color: transparent;
+  min-width: 150px;
+}
+.patentlist > div .analysis > .btn-group .btn.Low {
+  background-color: #01A951;
+  border: #01A951 !important;
+  color: white;
+}
+.patentlist > div .analysis > .btn-group .btn.Medium {
+  background-color: #665FAC;
+  border: #665FAC !important;
+  color: white;
+}
+.patentlist > div .analysis > .btn-group .btn.High {
+  background-color: #F05423 !important;
+  border: #F05423 !important;
+  color: white;
+}
 #viewingPatentModal .modal-body ul > li {
   cursor: pointer;
 }

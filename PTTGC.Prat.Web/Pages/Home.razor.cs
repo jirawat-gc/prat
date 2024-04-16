@@ -776,6 +776,8 @@ public partial class Home : ComponentBase
     public void ViewPatent(Patent p, string modal = "#viewingPatentModal")
     {
         this.ViewingPatent = p;
+        _ActiveClaim = p.Analysis.Claims.FirstOrDefault();
+
         this.StateHasChanged();
 
         _ = this.JS.InvokeVoidAsync("showModal", modal);
