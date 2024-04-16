@@ -28,9 +28,9 @@ public static class Util
     {
         prompResponse = prompResponse.Trim();
 
-        if (prompResponse.StartsWith("```json"))
+        if (prompResponse.IndexOf("```json") > 0)
         {
-            prompResponse = prompResponse.Substring("```json".Length);
+            prompResponse = prompResponse.Substring(prompResponse.IndexOf("```json") + "```json".Length);
         }
 
         if (prompResponse.IndexOf("```") > 0)
@@ -108,6 +108,19 @@ public static class Util
         }
 
         return null;
+    }
+
+    public static IEnumerable<T> SafeEnumerate<T>( this IEnumerable<T> input )
+    {
+        if (input == null)
+        {
+            yield break;
+        }
+
+        foreach (var item in input)
+        {
+            yield return item;
+        }
     }
 
     public record TitleDescription( string title, string description);

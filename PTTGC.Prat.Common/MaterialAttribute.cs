@@ -4,10 +4,6 @@ namespace PTTGC.Prat.Core
 {
     public class MaterialAttribute
     {
-        public string MaterialName { get; set; }
-
-        public string TestCondition { get; set; }
-
         public string AttributeName { get; set; }
 
         public float? LowerBound { get; set; }
@@ -15,7 +11,5 @@ namespace PTTGC.Prat.Core
         public float? UpperBound { get; set; }
 
         public string MeasurementUnit { get; set; }
-
-        public string FromRevision { get; set; }
     }
 }

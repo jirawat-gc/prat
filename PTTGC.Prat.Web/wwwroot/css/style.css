@@ -316,14 +316,40 @@
   flex-direction: column;
   margin-bottom: 16px;
 }
-.patentlist > div > div.summary {
-  overflow: clip;
-}
 .patentlist > div > div:first-child h5 {
   flex-grow: 1;
 }
 .patentlist > div > div:first-child div {
   text-align: right;
+}
+.patentlist > div .analysis {
+  display: flex;
+  gap: 5px;
+  font-size: 70%;
+}
+.patentlist > div .analysis > div {
+  background-color: rgba(245, 240, 240);
+  border-radius: 8px;
+  padding: 12px;
+}
+.patentlist > div .analysis > div h4 {
+  font-size: 150%;
+  margin: 0;
+}
+#viewingPatentModal .modal-body ul > li {
+  cursor: pointer;
+}
+#attributeViewer .modal-body table tr > th:first-child {
+  width: 50%;
+}
+#attributeViewer .modal-body table tr > th:nth-child(2) {
+  width: 20%;
+}
+#attributeViewer .modal-body table tr > th:nth-child(3) {
+  width: 20%;
+}
+.clickable {
+  cursor: pointer;
 }
 .collapsible {
   overflow: clip;

@@ -357,11 +357,11 @@
                                     <div>
                                         @if (item.Analysis.IsAnalyzing == false)
                                         {
-                                            <button class="btn btn-success disabling @(Helper.ActiveIf(this.IsBusy))"
-                                                     @onclick="() => this.ViewPatent(item)">
-                                                View
+                                            <button class="btn btn-outline-success disabling @(Helper.ActiveIf(this.IsBusy))"
+                                                    @onclick="() => this.ExtractPatentForUI(item)">
+                                                Extract Again
                                             </button>
-                                            <button class="btn btn-success disabling @(Helper.ActiveIf(this.IsBusy))"
+                                            <button class="btn btn-outline-success disabling @(Helper.ActiveIf(this.IsBusy))"
                                                     @onclick="() => this.AnalyzePatentForUI(item)">
                                                 Analyze Again
                                             </button>
@@ -377,7 +377,60 @@
                                 </div>
                                 <h4>@(item.Title)</h4>
                                 <div>
-                                    @(item.Excerpt)
+                                    @if (item.Analysis.IsAnalysisCompleted == false)
+                                    {
+                                        @("(Pending Analysis)")
+                                    }
+                                    else
+                                    {
+                                        <div class="analysis mt-2">
+                                            <div @onclick="() => this.ViewPatent(item)"
+                                                 class="clickable">
+                                                <h4>
+                                                    @(item.Analysis.Claims.Count)
+                                                    <i class="bi bi-box-arrow-in-up-right"></i>
+                                                </h4>
+                                                Claims
+                                            </div>
+
+                                            <div>
+                                                <h4>
+                                                    @(item.Analysis.Claims.Count( c => c.citations?.Count == 0))
+                                                </h4>
+                                                Main Claims
+                                            </div>
+
+                                            <div>
+                                                <h4>
+                                                    @(item.Analysis.SameApplications?.Count ?? 0)
+                                                </h4>
+                                                Similar Application
+                                            </div>
+
+                                            <div @onclick="@(() => this.ViewPatent(item, "#attributeViewer"))"
+                                                 class="clickable ms-4">
+                                                <h4>
+                                                    @(item.Analysis.TestResults.Count)
+                                                    <i class="bi bi-box-arrow-in-up-right"></i>
+                                                </h4>
+                                                Attributes
+                                            </div>
+
+                                            <div>
+                                                <h4>
+                                                    @(item.Analysis.SameAttributes?.Count ?? 0)
+                                                </h4>
+                                                Similar Attributes
+                                            </div>
+
+                                            <div>
+                                                <h4>
+                                                    @(item.Analysis.MissingAttributes?.Count ?? 0)
+                                                </h4>
+                                                Missing Attributes
+                                            </div>
+                                        </div>
+                                    }
                                 </div>
                             </div>
                         }
@@ -392,34 +445,78 @@
 </div>
 
 <!-- Modal -->
-<div class="modal modal-lg fade" id="viewingPatentModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="viewingPatentLabel" aria-hidden="true">
-    <div class="modal-dialog">
+<div class="modal fade" id="viewingPatentModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="viewingPatentLabel" aria-hidden="true"
+    <div class="modal-dialog modal-fullscreen">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="viewingPatentLabel">
-                    Patent: @(this.ViewingPatent.ApplicationId)
+                    Claims Explorer: @(this.ViewingPatent.Title) @(this.ViewingPatent.ApplicationId)
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <h2>
-                    @(this.ViewingPatent.Title)
-                </h2>
+                
+                <div class="d-flex" style="gap: 10px">
+                    <div class="w-50 font-bold">
+                        Claim
+                    </div>
+                    <div class="w-50 font-bold">
+                        Citations
+                    </div>
+                </div>
 
-                <b>
-                    Standalone Claims:
-                </b>
-                <ul>
-                    @foreach (var item in this.ViewingPatent.Analysis.StandaloneClaims.OrderBy( c => c.PointIndex ))
-                    {
-                        <li>
-                            <b>@(item.PointIndex)</b>:
-                            @(item.Claim)
-                        </li>
-                    }
-                </ul>
+                <div class="d-flex" style="gap: 10px">
+                    <ul class="list-group w-50">
 
+                        @foreach (var item in Util.SafeEnumerate(this.ViewingPatent?.Analysis?.Claims))
+                        {
+                            <li class="list-group-item @(item == _ActiveClaim ? "active" : "")"
+                                @onclick=@(() => this.ClaimExplorer_SetActiveClaim(item))>
+                                <b>@(item.index)</b>:
+                                @(item.claim)
 
+                                <br/>
+                                @if (item.citations?.Count == 0)
+                                {
+                                    <span class="badge bg-success mt-1">Main Claim</span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                    <ul class="list-group w-50">
+                        
+                        @foreach (var index in Util.SafeEnumerate(_ActiveClaim?.citations))
+                        {
+                            if (index >= 1 && index < (this.ViewingPatent?.Analysis?.Claims?.Count ?? 0))
+                            {
+                                var item = this.ViewingPatent?.Analysis?.Claims[index + 1];
+
+                                <li class="list-group-item">
+                                    <b>@(item.index)</b>:
+                                    @(item.claim)
+                                </li>
+                            }
+                        }
+
+                    </ul>
+                </div>                
+                
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal modal-lg fade" id="attributeViewer" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="attributeViewerLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="attributeViewerLabel">
+                    Attributes:  @(this.ViewingPatent.Title) @(this.ViewingPatent.ApplicationId)
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h5>From Patent:</h5>
                 <table class="table table-hover">
                     <thead>
                         <tr>
@@ -430,11 +527,61 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var item in this.ViewingPatent.Analysis.MaterialAttributes)
+                        @foreach (var item in Util.SafeEnumerate(this.ViewingPatent?.Analysis?.TestResults)
+                                                .OrderBy( item => item.attribute))
                         {
                             <tr>
                                 <td>
-                                    @(item.AttributeName)
+                                    @(item.attribute)
+                                </td>
+                                <td>
+                                    @(item.value_lower_bound)
+                                </td>
+                                <td>
+                                    @(item.value_upper_bound)
+                                </td>
+                                <td>
+                                    @(item.unit)
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+                <h5>Ours:</h5>
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Attribute</th>
+                            <th>Lower bound</th>
+                            <th>Upper bound</th>
+                            <th>Unit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Util.SafeEnumerate(this.Workspace?.MaterialAttributes))
+                        {
+                            <tr>
+                                <td>
+                                    @(item.AttributeName) <br/>
+
+                                    @{
+                                        var same = Util.SafeEnumerate(this.ViewingPatent?.Analysis?.SameAttributes)
+                                                    .Any(sa => sa.attribute == item.AttributeName);
+                                        var missing = Util.SafeEnumerate(this.ViewingPatent?.Analysis?.MissingAttributes)
+                                                    .Any(sa => sa.attribute == item.AttributeName);
+                                    }
+
+                                    @if (same)
+                                    {
+                                        <span class="badge bg-primary">Match</span>
+                                    }
+
+                                    @if (missing)
+                                    {
+                                        <span class="badge bg-warning">No Match</span>
+                                    }
+
                                 </td>
                                 <td>
                                     @(item.LowerBound)
@@ -447,16 +594,11 @@
                                 </td>
                             </tr>
                         }
+
                     </tbody>
                 </table>
 
 
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary"
-                        @onclick="() => this.ViewingPatent.Analysis.PopulateAnalysis()">
-                    Reload Analysis
-                </button>
             </div>
         </div>
     </div>

@@ -28,13 +28,13 @@ public static partial class VertexAIDomain
 
         _Regions = new string[]
         {
-            //"asia-northeast3",
+            "asia-northeast3",
             "asia-southeast1", 
-            //"asia-northeast1",
-            //"us-central1",
-            //"us-west4",
-            //"us-east4",
-            //"us-west1",
+            "asia-northeast1",
+            "us-central1",
+            "us-west4",
+            "us-east4",
+            "us-west1",
         };
 
         _Clients = _Regions.Select(r =>

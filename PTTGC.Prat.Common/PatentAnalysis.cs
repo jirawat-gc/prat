@@ -7,42 +7,43 @@ namespace PTTGC.Prat.Common;
 
 public class PatentAnalysis
 {
-    public class StandaloneClaim
+    public class AttributeAnalyis
     {
-        public string Claim { get; set; }
-
-        [JsonProperty("point_index")]
-        public string PointIndex { get; set; }
-
-        public string Revision { get; set; }
+        public string attribute { get; set; }
     }
 
+    public class Claim
+    {
+        public int index { get; set; }
+        public string claim { get; set; }
+        public List<int> citations { get; set; }
+        public string revision { get; set; }
+    }
+
+    public class TestResult
+    {
+        public string attribute { get; set; }
+        public string value_lower_bound { get; set; }
+        public string value_upper_bound { get; set; }
+        public string unit { get; set; }
+
+        public MaterialAttribute MatchingInnovationAttribute { get; set; }
+    }
     /// <summary>
     /// List of Standalone Claims found in patent
     /// </summary>
-    public List<StandaloneClaim> StandaloneClaims { get; set; } = new();
+    public List<Claim> Claims { get; set; } = new();
 
     /// <summary>
     /// List of Material Attributes found in patent
     /// </summary>
-    public List<MaterialAttribute> MaterialAttributes { get; set; } = new();
+    public List<TestResult> TestResults { get; set; } = new();
 
-    /// <summary>
-    /// Application as mentioned in patent claim
-    /// </summary>
-    public string Application { get; set; }
+    public List<AttributeAnalyis> SameAttributes { get; set; } = new ();
 
-    public bool? IsOlefins { get; set; }
+    public List<AttributeAnalyis> MissingAttributes { get; set; } = new();
 
-    public bool? IsAromatics { get; set; }
-
-    public bool? IsPolyolefins { get; set; }
-
-    public bool? IsPolyethylene { get; set; }
-
-    public string? PolymerBase { get; set; }
-
-    public string? PolymerComonomer { get; set; }
+    public List<AttributeAnalyis> SameApplications { get; set; } = new();
 
     /// <summary>
     /// Similarity score when comparing all flags
@@ -60,6 +61,11 @@ public class PatentAnalysis
     public ConcurrentDictionary<string, string> PromptResponses { get; set; } = new();
 
     /// <summary>
+    /// Prompt Output after analysis
+    /// </summary>
+    public Dictionary<string, JObject> PromptOutput { get; set; } = new();
+
+    /// <summary>
     /// Whether analysis has been ran
     /// </summary>
     public bool IsAnalysisCompleted { get; set; }
@@ -71,69 +77,18 @@ public class PatentAnalysis
 
     public void PopulateAnalysis()
     {
-        this.PopulatePolymerFeatures();
-        this.PopulateStandaloneClaim();
-        this.PopulateMaterialAttributes();
-    }
-
-    public void PopulateMaterialAttributes()
-    {
-        var response = this.PromptResponses.Get("EXTRACT_TEST_RESULT");
-        var responseJO = response.FixJson();
-
-        var list = responseJO["test_results"] as JArray;
-        if (list == null)
+        foreach (var item in this.PromptResponses)
         {
-            return;
-        }
-
-        this.MaterialAttributes = new();
-        foreach (var item in list)
-        {
-            var jo = item as JObject;
-            this.MaterialAttributes.Add(new MaterialAttribute()
+            try
             {
-                AttributeName = jo.TryGetString("test"),
-                TestCondition = jo.TryGetString("condition"),
-                LowerBound = jo.TryGetFloat("value_lower_bound"),
-                UpperBound = jo.TryGetFloat("value_upper_bound"),
-                MeasurementUnit = jo.TryGetString("unit"),
-                FromRevision = jo.TryGetString("revision"),
-            });
+                var response = item.Value;
+                var responseJO = response.FixJson();
+
+                this.PromptOutput[item.Key] = responseJO;
+            }
+            catch (Exception)
+            {
+            }
         }
-    }
-
-    public void PopulateStandaloneClaim()
-    {
-        var response = this.PromptResponses.Get("EXTRACT_MAIN_CLAIM");
-        var responseJO = response.FixJson();
-
-        var list = responseJO["standalone_claims"] as JArray;
-        if (list == null)
-        {
-            return;
-        }
-
-        this.StandaloneClaims = new();
-        foreach (var item in list)
-        {
-            var jo = item as JObject;
-            this.StandaloneClaims.Add(jo.ToObject<StandaloneClaim>());
-        }
-    }
-
-    public void PopulatePolymerFeatures()
-    {
-        var response = this.PromptResponses.Get("EXTRACT_POLYMER_FEATURE");
-        var responseJO = response.FixJson();
-
-        this.IsOlefins = responseJO.TryGetBool("is_olefins");
-        this.IsAromatics = responseJO.TryGetBool("is_aromatics");
-        this.IsPolyolefins = responseJO.TryGetBool("is_polyolefins");
-        this.IsPolyethylene = responseJO.TryGetBool("is_polyethylene");
-
-        this.PolymerBase = responseJO.TryGetString("base_of_polymer");
-        this.PolymerComonomer = responseJO.TryGetString("comonomer");
-        this.Application = responseJO.TryGetString("application");
     }
 }

@@ -5,7 +5,10 @@ using Newtonsoft.Json.Linq;
 using PTTGC.Prat.Common;
 using PTTGC.Prat.Common.Requests;
 using PTTGC.Prat.Core;
+using System.Security.Claims;
 using System.Text;
+using static PTTGC.Prat.Common.PatentAnalysis;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace PTTGC.Prat.Web.Pages;
 
@@ -116,7 +119,7 @@ public partial class Home : ComponentBase
         new ("Molecular weight (Mw)", "g/㏖"),
     };
 
-    private void ChangeMaterialAttribute( MaterialAttribute item, (string attribute, string unit) attr )
+    private void ChangeMaterialAttribute(MaterialAttribute item, (string attribute, string unit) attr)
     {
         item.AttributeName = attr.attribute;
         item.LowerBound = 0;
@@ -126,17 +129,17 @@ public partial class Home : ComponentBase
         this.StateHasChanged();
     }
 
-    private bool IsCustomAttribute( MaterialAttribute item )
+    private bool IsCustomAttribute(MaterialAttribute item)
     {
         return _CommonAttributes.Any(a => a.attribute == item.AttributeName) == false;
     }
 
-    private string FixFlagKey( string flagKey)
+    private string FixFlagKey(string flagKey)
     {
         return new string(flagKey.ToLowerInvariant()
                     .Replace(" ", "_")
-                    .Where( c => char.IsLetterOrDigit(c))
-                    .ToArray() );
+                    .Where(c => char.IsLetterOrDigit(c))
+                    .ToArray());
     }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -279,7 +282,7 @@ public partial class Home : ComponentBase
         }
 
         this.LogMessage = "Looking for Patent Cluster...";
-        var featureRequest = new FindClusterRequest(this.Workspace.AIEmbeddingVector, this.Workspace.AIPatentFlags );
+        var featureRequest = new FindClusterRequest(this.Workspace.AIEmbeddingVector, this.Workspace.AIPatentFlags);
         var modelInput = JsonConvert.SerializeObject(featureRequest, Formatting.None);
         var result = await this.PythonPredictor.InvokeAsync<string>("runPredictor", modelInput);
 
@@ -324,7 +327,7 @@ public partial class Home : ComponentBase
         this.LogMessage = null;
     }
 
-    public void SetActiveCluster( string clusterId )
+    public void SetActiveCluster(string clusterId)
     {
 
     }
@@ -349,20 +352,6 @@ public partial class Home : ComponentBase
         this.IsBusy = false;
     }
 
-    private Task PromptBackground(Patent p, JObject context, string promptKey)
-    {
-        return Task.Run(async () =>
-        {
-            var result = await PratBackend.Default.Prompt(new PromptRequest()
-            {
-                PromptContext = context,
-                PromptKey = promptKey
-            });
-
-            p.Analysis.PromptResponses[promptKey] = result;
-        });
-    }
-
     /// <summary>
     /// Meant to be called by UI to perform analysis on all patents
     /// </summary>
@@ -375,7 +364,7 @@ public partial class Home : ComponentBase
 
         foreach (var id in this.Workspace.MatchingCluster.PatentApplicationIds)
         {
-            if (existing.Contains( id ) == false)
+            if (existing.Contains(id) == false)
             {
                 this.Workspace.PatentsToAnalyze.Add(new Patent() { ApplicationId = id });
             }
@@ -403,7 +392,7 @@ public partial class Home : ComponentBase
             try
             {
                 this.LogMessage = $"AI is Analyzing Patent #{patent.ApplicationId}";
-                await this.AnalyzePatent(patent);
+                await this.ExtractPatent(patent);
 
                 this.LogMessage = $"Saving Analysis...";
                 await PratBackend.Default.SubmitWorkspace(this.Workspace);
@@ -419,14 +408,214 @@ public partial class Home : ComponentBase
                 _ = this.JS.InvokeVoidAsync("alert", $"Issue communicating with servers, please try again.\r\n\r\n{ex.Message}");
                 return;
             }
-            
+
         }
 
         this.LogMessage = null;
         this.IsBusy = false;
     }
 
-    public async Task AnalyzePatentForUI( Patent p)
+    public async Task ExtractPatentForUI(Patent p)
+    {
+        this.IsBusy = true;
+
+        try
+        {
+            await this.ExtractPatent(p);
+
+            await PratBackend.Default.SubmitWorkspace(this.Workspace);
+        }
+        catch (Exception ex)
+        {
+            this.IsBusy = false;
+            _ = this.JS.InvokeVoidAsync("alert", $"Issue communicating with servers, please try again.\r\n\r\n{ex.Message}");
+            return;
+        }
+        finally
+        {
+            p.Analysis.IsAnalyzing = false;
+        }
+
+        this.LogMessage = null;
+        this.IsBusy = false;
+    }
+
+    /// <summary>
+    /// Analyze individual patent
+    /// </summary>
+    /// <param name="p"></param>
+    /// <returns></returns>
+    public async Task ExtractPatent(Patent p)
+    {
+        p.Analysis.IsAnalyzing = true;
+        this.AnalyzingPatent = p;
+        this.StateHasChanged();
+
+        if (p.PatentClaims == null)
+        {
+            try
+            {
+                await PratBackend.Default.PopulateFromGCS($"patents/{p.ApplicationId}.json.gz", p, true);
+
+                p.Analysis.IsAnalyzing = true;
+                this.StateHasChanged();
+            }
+            catch (Exception)
+            {
+                p.Analysis.IsAnalyzing = false;
+                return;
+            }
+        }
+
+        var promptContext = JObject.FromObject(p);
+
+        this.LogMessage = $"Extracting List of Claims from #{p.ApplicationId}";
+        this.StateHasChanged();
+
+        var retryCount = 0;
+
+    // 1) list the claims
+    RetryClaim:
+        try
+        {
+            var claimsResponse = await PratBackend.Default.Prompt(new PromptRequest()
+            {
+                PromptContext = promptContext,
+                PromptKey = "EXTRACT_CLAIMS"
+            });
+
+            var claimsResult = claimsResponse.FixJson();
+            var claimList = claimsResult["claims"] as JArray;
+            p.Analysis.Claims = claimList.Select(item => item.ToObject<PatentAnalysis.Claim>()).ToList();
+
+            p.Analysis.PromptResponses["EXTRACT_CLAIMS"] = claimsResponse;
+            p.Analysis.PromptOutput["EXTRACT_CLAIMS"] = claimsResult;
+
+        }
+        catch (Exception)
+        {
+            if (retryCount == 3)
+            {
+                throw;
+            }
+
+            this.LogMessage = $"Retrying Claim Extraction #{p.ApplicationId}";
+            await Task.Delay(5000);
+
+            retryCount++;
+            goto RetryClaim;
+        }
+
+    // 2) for each claim, extract material feature
+    //p.Analysis.TestResults = new();
+    //foreach (var claim in p.Analysis.Claims)
+    //{
+    //    this.LogMessage = $"Extracting Result from #{p.ApplicationId} ({claim.index}/{p.Analysis.Claims.Count})";
+    //    retryCount = 0;
+
+    //RetryExtractTestResult:
+    //    try
+    //    {
+    //        var testResultResponse = await PratBackend.Default.Prompt(new PromptRequest()
+    //        {
+    //            PromptContext = JObject.FromObject(claim),
+    //            PromptKey = "EXTRACT_TEST_RESULT_PER_CLAIM"
+    //        });
+
+    //        var testResultJo = testResultResponse.FixJson();
+
+    //        p.Analysis.PromptResponses[$"EXTRACT_TEST_RESULT_PER_CLAIM_{claim.index}"] = testResultResponse;
+    //        p.Analysis.PromptOutput["EXTRACT_TEST_RESULT_PER_CLAIM_{claim.index}"] = testResultJo;
+
+    //        p.Analysis.TestResults.Add(testResultJo.ToObject<PatentAnalysis.TestResult>());
+    //    }
+    //    catch (Exception)
+    //    {
+    //        if (retryCount == 3)
+    //        {
+    //            throw;
+    //        }
+
+    //        this.LogMessage = $"Retrying Result Extraction #{p.ApplicationId} ({claim.index}/{p.Analysis.Claims.Count})";
+    //        await Task.Delay(5000);
+
+    //        retryCount++;
+    //        goto RetryExtractTestResult;
+    //    }
+    //}
+
+    RetryExtractTestResult:
+        try
+        {
+            this.LogMessage = $"Extracting Attribute from #{p.ApplicationId}";
+
+            var testResultResponse = await PratBackend.Default.Prompt(new PromptRequest()
+            {
+                PromptContext = promptContext,
+                PromptKey = "EXTRACT_TEST_RESULT"
+            });
+
+            var testResultJo = testResultResponse.FixJson();
+            var testList = testResultJo["test_results"] as JArray;
+            p.Analysis.TestResults = testList.Select(item => item.ToObject<PatentAnalysis.TestResult>()).ToList();
+
+            p.Analysis.PromptResponses[$"EXTRACT_TEST_RESULT"] = testResultResponse;
+            p.Analysis.PromptOutput["EXTRACT_TEST_RESULT"] = testResultJo;
+        }
+        catch (Exception)
+        {
+            if (retryCount == 3)
+            {
+                throw;
+            }
+
+            this.LogMessage = $"Retrying Attribute Extraction #{p.ApplicationId}";
+            await Task.Delay(5000);
+
+            retryCount++;
+            goto RetryExtractTestResult;
+        }
+
+
+        this.LogMessage = $"Extracting Polymer Features from #{p.ApplicationId}";
+        this.StateHasChanged();
+
+        retryCount = 0;
+    RetryPolymerFeature:
+        try
+        {
+            var polymerFeatureResponse = await PratBackend.Default.Prompt(new PromptRequest()
+            {
+                PromptContext = promptContext,
+                PromptKey = "EXTRACT_POLYMER_FEATURE"
+            });
+
+            p.Analysis.PromptResponses["EXTRACT_POLYMER_FEATURE"] = polymerFeatureResponse;
+            p.Analysis.PromptOutput["EXTRACT_POLYMER_FEATURE"] = polymerFeatureResponse.FixJson();
+
+        }
+        catch (Exception)
+        {
+            if (retryCount == 3)
+            {
+                throw;
+            }
+
+            this.LogMessage = $"Retrying Claim Extraction from #{p.ApplicationId}";
+            await Task.Delay(5000);
+
+            retryCount++;
+            goto RetryPolymerFeature;
+        }
+
+        p.Analysis.IsAnalyzing = false;
+        p.Analysis.IsAnalysisCompleted = true;
+        this.LogMessage = $"Analysis of #{p.ApplicationId} completed";
+        this.StateHasChanged();
+
+    }
+
+    public async Task AnalyzePatentForUI(Patent p)
     {
         this.IsBusy = true;
 
@@ -451,67 +640,148 @@ public partial class Home : ComponentBase
         this.IsBusy = false;
     }
 
-    /// <summary>
-    /// Analyze individual patent
-    /// </summary>
-    /// <param name="p"></param>
-    /// <returns></returns>
     public async Task AnalyzePatent(Patent p)
     {
-        p.Analysis.IsAnalyzing = true;
-        this.AnalyzingPatent = p;
-        this.StateHasChanged();
+        var retryCount = 0;
 
-        if (p.PatentClaims == null)
+        // Compare Attributes
+        p.Analysis.SameAttributes = new();
+        p.Analysis.MissingAttributes = new();
+
+        foreach (var item in this.Workspace.MaterialAttributes)
         {
+            var index = this.Workspace.MaterialAttributes.IndexOf(item);
+
+        RetryComparison:
             try
             {
-                await PratBackend.Default.PopulateFromGCS($"patents/{p.ApplicationId}.json.gz", p, true);
-
-                p.Analysis.IsAnalyzing = true;
+                this.LogMessage = $"Comparing '{item.AttributeName}' with #{p.ApplicationId} ({index + 1}/{this.Workspace.MaterialAttributes.Count})";
                 this.StateHasChanged();
+
+                var attributeAnalysisResponse = await PratBackend.Default.Prompt(new PromptRequest()
+                {
+                    PromptContext = JObject.FromObject(new
+                    {
+                        Our = item,
+                        TestResults = p.Analysis.TestResults.Where(t => t.value_upper_bound != null && t.value_lower_bound != null)
+                    }),
+                    MaxTokens = 20,
+                    PromptKey = "ANALYZE_ATTRIBUTE"
+                });
+
+                var attributeAnalysis = attributeAnalysisResponse.FixJson();
+
+                p.Analysis.PromptResponses[$"ANALYZE_ATTRIBUTES_{index}"] = attributeAnalysisResponse;
+                p.Analysis.PromptOutput[$"ANALYZE_ATTRIBUTES_{index}"] = attributeAnalysis;
+
+                var match = attributeAnalysis.TryGetString("match");
+                if (attributeAnalysis.TryGetString("match") != null)
+                {
+                    if (p.Analysis.TestResults.Any( t => t.attribute == match ))
+                    {
+                        p.Analysis.SameAttributes.Add(new AttributeAnalyis() { attribute = attributeAnalysis.TryGetString("match") });
+                    }
+                    else
+                    {
+                        p.Analysis.MissingAttributes.Add(new AttributeAnalyis() { attribute = item.AttributeName });
+                    }
+                }
+                else
+                {
+                    p.Analysis.MissingAttributes.Add(new AttributeAnalyis() { attribute = item.AttributeName });
+                }
+
             }
             catch (Exception)
             {
-                p.Analysis.IsAnalyzing = false;
-                return;
+                if (retryCount == 3)
+                {
+                    throw;
+                }
+
+                this.LogMessage = $"Retrying Comparison  #{p.ApplicationId}";
+                await Task.Delay(5000);
+
+                retryCount++;
+                goto RetryComparison;
             }
+
+            retryCount = 0;
         }
 
-        var promptContext = JObject.FromObject(p);
 
-        this.LogMessage = $"Extraction Main Claim from #{p.ApplicationId}";
-        this.StateHasChanged();
-        await this.PromptBackground(p, promptContext, "EXTRACT_MAIN_CLAIM");
+    RetryApplication:
+        try
+        {
+            this.LogMessage = $"Comparing Application with #{p.ApplicationId}";
+            this.StateHasChanged();
 
-        this.LogMessage = $"Extraction Test Result from #{p.ApplicationId}";
-        this.StateHasChanged();
-        await this.PromptBackground(p, promptContext, "EXTRACT_TEST_RESULT");
+            string applications = string.Empty;
+            if (p.Analysis.PromptOutput["EXTRACT_POLYMER_FEATURE"]["application"] is JArray ja)
+            {
+                applications = string.Join(',', ja.Select(jt => (string)jt));
+            }
 
-        this.LogMessage = $"Extraction Polymer Features from #{p.ApplicationId}";
-        this.StateHasChanged();
-        await this.PromptBackground(p, promptContext, "EXTRACT_POLYMER_FEATURE");
+            if (p.Analysis.PromptOutput["EXTRACT_POLYMER_FEATURE"]["application"].Type == JTokenType.String)
+            {
+                applications = (string)p.Analysis.PromptOutput["EXTRACT_POLYMER_FEATURE"]["application"];
+            }
 
-        p.Analysis.PopulateStandaloneClaim();
-        p.Analysis.PopulatePolymerFeatures();
-        p.Analysis.PopulateMaterialAttributes();
+            if (string.IsNullOrEmpty(applications) == false)
+            {
+                var applicationAnalysisResponse = await PratBackend.Default.Prompt(new PromptRequest()
+                {
+                    PromptContext = JObject.FromObject(new
+                    {
+                        application = applications,
+                        innovation_application = this.Workspace.InnovationApplication
 
-        p.Analysis.IsAnalyzing = false;
-        p.Analysis.IsAnalysisCompleted = true;
-        this.LogMessage = $"Analysis of #{p.ApplicationId} completed";
-        this.StateHasChanged();
+                    }),
+                    MaxTokens = 100,
+                    PromptKey = "ANALYZE_SAME_APPLICATION"
+                });
 
+                var applicationAnalysis = applicationAnalysisResponse.FixJson();
+                var sameList = applicationAnalysis["same"] as JArray;
+                p.Analysis.SameApplications = sameList.Select(item => item.ToObject<PatentAnalysis.AttributeAnalyis>()).ToList();
+
+                p.Analysis.PromptResponses["ANALYZE_SAME_APPLICATION"] = applicationAnalysisResponse;
+                p.Analysis.PromptOutput["ANALYZE_SAME_APPLICATION"] = applicationAnalysis;
+
+            }
+        }
+        catch (Exception)
+        {
+            if (retryCount == 3)
+            {
+                throw;
+            }
+
+            this.LogMessage = $"Retrying Comparison of Application  #{p.ApplicationId}";
+            await Task.Delay(5000);
+
+            retryCount++;
+            goto RetryApplication;
+        }
     }
 
-    public void ViewPatent( Patent p)
+    private PatentAnalysis.Claim _ActiveClaim;
+
+    public void ClaimExplorer_SetActiveClaim( PatentAnalysis.Claim c)
+    {
+        _ActiveClaim = c;
+        this.StateHasChanged();
+    }
+
+    public void ViewPatent(Patent p, string modal = "#viewingPatentModal")
     {
         this.ViewingPatent = p;
         this.StateHasChanged();
 
-        _ = this.JS.InvokeVoidAsync("showModal", "#viewingPatentModal");
+        _ = this.JS.InvokeVoidAsync("showModal", modal);
     }
 
-    public void LoadIframe( string iframeId, string src)
+    public void LoadIframe(string iframeId, string src)
     {
         _ = this.JS.InvokeVoidAsync("navigateIframe", iframeId, src);
     }

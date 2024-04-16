@@ -50,24 +50,39 @@ public static partial class VertexAIDomain
 
         """;
 
-        promptDict["EXTRACT_MAIN_CLAIM"] = """
+        promptDict["EXTRACT_CLAIMS"] = """
             Title: {{Title}}
             Content:
             {{PatentClaims}}
 
             ## Above is content from patent claims and title. Take a deep breath to consider both Title and Content before answering.
-            "Standalone Claim" are claim points in Patent Claims where the point does not referring to any other point.
             Answer in this JSON format:
             {
-                "standalone_claims" : [
-                    List any and all Standalone Claim present in patent claims in this format:
-                    {
-                        "claim" : standalone claim content shorten to 2 sentences,
-                        "point_index" : claim number of this standalone claim as mentioned in content,
-                        "revision" : if the patent claim contains multiple revisions, specify the revision or date where this standalone claim is presented
-                    }
-                ]
+        	    "claims" : [
+        		    List all Claims points in patent claims using this format:
+        		    {
+        			    "index" : claim index as specified in patent claims
+        			    "claim" : claim content shorten to 2 sentences,
+        			    "citations" : list of other claim index this claim refer to
+        			    "revision" : if the patent claim contains multiple revisions, specify the revision or date where this claim is presented
+        		    }
+        	    ]
             }
+        """;
+
+        promptDict["EXTRACT_TEST_RESULT_PER_CLAIM"] = """
+            Index: {{index}}
+            {{Claim}}
+                    
+            ## Above is a single claim from patent claims and title. Take a deep breath to consider both Title and Claim before answering.
+            Answer in this JSON format:
+            {
+        		"attribute" : description of the test, characterization or attribute mentioned,
+        		"value_lower_bound": lower bound value of the attribute, for example: if value is '0.930 to 0.950' or '0.930-0.950' - output '0.930'. if the value is not a range, such as: '70%', output '70%',
+        		"value_upper_bound": upper bound value of the attribute, for example: if value is '0.930 to 0.950' or '0.930-0.950' - output '0.950'. if the value is not a range, such as: '70%', output '70%',
+        		"unit" : unit of the attribute value, for example: if value is '0.930 to 0.950 g/10 min' - output 'g/10 min',
+            }
+              
         """;
 
         promptDict["EXTRACT_TEST_RESULT"] = """
@@ -80,18 +95,18 @@ public static partial class VertexAIDomain
             Answer in this JSON format:
             {
         	    "test_results" : [
-        		    List any and all material test results, such as: melting point, density, molecular weight, in this format:
+        		    List any and all material attribute or test result, such as: melting point, density, molecular weight, in this format:
         		    {
-        			    "test" : name of the test, such as: CDBI,
-        			    "condition": testing condition, for example: 'Melt flow rate (MFR; at 190C, 2.16 kg)' - the answer is: 'at 190c, 2.16kg' or 'Melt flow rate (MFR; I2.16)' - the answer is: 'I2.16'
-        			    "value_lower_bound": lower bound result of the test, for example: if result is '0.930 to 0.950 g/10 min' - answer '0.930'. if the value is not a range, such as: 70%, answer with that value,
-        			    "value_upper_bound": upper bound result of the test, for example: if result is '0.930 to 0.950 g/10 min' - answer '0.950'. if the value is not a range, such as: 70%, answer with that value,
-        			    "unit" : unit of the rest result, for example: if result is '0.930 to 0.950 g/10 min' - answer 'g/10 min',
-        			    "revision" : if the patent claim contains multiple revisions, specify the revision or date where this test result is presented,
+        			    "attribute" : name of the attribute or test result, such as: CDBI, MFR or Flexural modulus
+        			    "value_lower_bound": lower bound value of the attribute or test result, for example: if value is '0.930 to 0.950 g/10 min' - answer '0.930'. if the value is not a range, such as: 70%, answer with that value,
+        			    "value_upper_bound": upper bound value of the attribute or test result, for example: if value is '0.930 to 0.950 g/10 min' - answer '0.950'. if the value is not a range, such as: 70%, answer with that value,
+        			    "unit" : unit of the attribute, for example: if value is '0.930 to 0.950 g/10 min' - answer 'g/10 min',
+        			    "revision" : the patent revision which this attribute is found,
         		    }
         	    ]
             }
         """;
+
 
         promptDict["EXTRACT_POLYMER_FEATURE"] = """
             Title: {{Title}}
@@ -112,5 +127,39 @@ public static partial class VertexAIDomain
             }
         """;
 
+        promptDict["ANALYZE_ATTRIBUTE"] = """
+            Patent Attributes:
+            {{#each TestResults}}
+            - {{attribute}}: {{value_lower_bound}}{{#if value_upper_bound}}- {{value_upper_bound}}{{/if}} {{unit}}
+            {{/each}}
+
+            Our attribute:
+            - {{Our.AttributeName}}: {{Our.LowerBound}}{{#if Our.UpperBound}} - {{Our.UpperBound}}{{/if}} {{Our.MeasurementUnit}}
+
+            ## Take a deep breath to consider both Patent Attribute and Our Attribute before answering.
+            Be concise and do not include markdown in your answer.
+            Answer in this JSON format:
+            {
+                "match" : exact name of the attribute in patent which match with ours or null if there is none
+            }
+
+        """;
+
+        promptDict["ANALYZE_SAME_APPLICATION"] = """
+            Patent Application for Product:
+            {{application}}
+
+            Our Application for Product:
+            {{innovation_application}}
+        
+            ## Take a deep breath to consider both Patent Application for Product and Our Application for Product before answering.
+            Be concise and do not include markdown in your answer.
+            Answer in this JSON format:
+            {
+                "same" : [
+                    String List of our application which is similar to patent application
+                ]
+            }
+        """;
     }
 }
