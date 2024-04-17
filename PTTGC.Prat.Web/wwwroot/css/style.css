@@ -244,6 +244,14 @@
 .aiapp-container .common-app-header h1 {
   color: var(--gc-blue);
 }
+h1 {
+  font-family: 'DB Heavent';
+  line-height: 0.5 !important;
+}
+.logo {
+  font-size: 48px;
+  margin: 0;
+}
 .research .clusterview .scatterplot {
   background-color: silver;
   height: 430px;
@@ -367,6 +375,20 @@
 }
 #attributeViewer .modal-body table tr > th:nth-child(3) {
   width: 20%;
+}
+.sidebar ul {
+  margin: -12px;
+  list-style: none;
+  padding: 0;
+}
+.sidebar ul li {
+  padding: 16px;
+  background-color: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+.sidebar ul li.active {
+  background-color: rgba(255, 255, 255, 0.6);
+  color: black;
 }
 .clickable {
   cursor: pointer;

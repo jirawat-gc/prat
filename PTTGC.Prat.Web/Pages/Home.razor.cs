@@ -8,7 +8,6 @@ using PTTGC.Prat.Core;
 using System.Security.Claims;
 using System.Text;
 using static PTTGC.Prat.Common.PatentAnalysis;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace PTTGC.Prat.Web.Pages;
 
@@ -154,12 +153,30 @@ public partial class Home : ComponentBase
 
             await ProjectData.Default.EnsurePatentClustersLoaded();
 
+            await this.SetupJSCommunication();
+
+            this.InitializeChart();
+
             await ProjectData.Default.LoadDemoWorkspace();
 
             this.Workspace = ProjectData.Default.DemoWorkspace;
 
             this.LogMessage = null;
         }
+    }
+
+    public void AddNewMaterialAttribute()
+    {
+        this.Workspace.MaterialAttributes.Add(this.NewMaterialAttributeItem);
+        this.NewMaterialAttributeItem = new();
+
+        this.StateHasChanged();
+    }
+
+    public void RemoveNewMaterialAttribute(MaterialAttribute item)
+    {
+        this.NewMaterialAttributeItem = item;
+        this.Workspace?.MaterialAttributes.Remove(item);
     }
 
     public async Task ProcessWorkspace()
@@ -306,12 +323,16 @@ public partial class Home : ComponentBase
                     "0701000705",
                     "1501005841",
                     "1501005841",
-                    "2101002233",
                     "2001006704",
                     "0401000323"
                 },
                 ClusterLabel = "DEMO",
             };
+
+            foreach (var id in this.Workspace.MatchingCluster.PatentApplicationIds)
+            {
+                this.Workspace.PatentsToAnalyze.Add(new Patent() { ApplicationId = id });
+            }
         }
         else
         {
@@ -321,15 +342,20 @@ public partial class Home : ComponentBase
             this.Workspace.MatchingCluster = ProjectData.Default.PatentClusters.FirstOrDefault(pc => pc.ClusterLabel == this.Workspace.AIPredictedCluster);
         }
 
-        await this.SaveWorkspace();
+        this.InitializeChart();
+
+        //await this.SaveWorkspace();
 
         this.IsBusy = false;
         this.LogMessage = null;
     }
 
+    private PatentCluster _SelectedCluster;
+
     public void SetActiveCluster(string clusterId)
     {
-
+        _SelectedCluster = ProjectData.Default.PatentClusters.FirstOrDefault(pc => pc.ClusterLabel == clusterId);
+        this.StateHasChanged();
     }
 
     public async Task SaveWorkspace()
@@ -786,5 +812,73 @@ public partial class Home : ComponentBase
     public void LoadIframe(string iframeId, string src)
     {
         _ = this.JS.InvokeVoidAsync("navigateIframe", iframeId, src);
+    }
+
+    public void InitializeChart()
+    {
+        _ = this.JS.InvokeVoidAsync("scatterPlot", new
+        {
+            clusters = new
+            {
+                color = "rgba(217, 217, 217, 0.14)",
+                rows = ProjectData.Default.PatentClusters
+                        .Select(pc => pc.ClusterCentoid)
+                        .Select( ct => new
+                        {
+                            x = ct[0],
+                            y = ct[1],
+                            z = ct[2],
+                        }),
+                name = "clusters",
+                text = ProjectData.Default.PatentClusters
+                        .Select(pc => $"Cluster: {pc.ClusterLabel}"),
+                ids = ProjectData.Default.PatentClusters
+                        .Select(pc => pc.ClusterLabel),
+            },
+            predicted = new
+            {
+                color = "#01A951",
+                rows = new object[] { new
+                {
+                    x = this.Workspace.MatchingCluster?.ClusterCentoid?[0] ?? 0d,
+                    y = this.Workspace.MatchingCluster?.ClusterCentoid?[1] ?? 0d,
+                    z = this.Workspace.MatchingCluster?.ClusterCentoid?[2] ?? 0d,
+                }},
+                size = 24,
+                text = new string[] { "Predicted Cluster" },
+                name = "predicted",
+            },
+            innovation = new
+            {
+                color = "#C3D62F",
+                rows = new object[] { new
+                {
+                    x = this.Workspace.AIPredictedVisualizationCoords?[0] ?? 0d,
+                    y = this.Workspace.AIPredictedVisualizationCoords?[1] ?? 0d,
+                    z = this.Workspace.AIPredictedVisualizationCoords?[2] ?? 0d,
+                }},
+                size = 24,
+                text = new string[] { "Innovation Location" },
+                name = "innovation",
+            },
+
+        }, "clusterview");
+    }
+
+    public ValueTask SetupJSCommunication()
+    {
+        var pageRef = DotNetObjectReference.Create(this);
+        return JS.InvokeVoidAsync("trackDotNet", pageRef);
+    }
+
+    [JSInvokable("PointSelected")]
+    public void PointSelected(string json)
+    {
+        JArray ja = JArray.Parse(json);
+        JObject data = ja[0] as JObject;
+        if ((string)data["trace"] == "clusters")
+        {
+            this.SetActiveCluster((string)data["id"]);
+        }
     }
 }

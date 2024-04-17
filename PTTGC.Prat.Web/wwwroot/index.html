@@ -50,6 +50,80 @@
         window.navigateIframe = function (iframeId, src) {
             document.getElementById(iframeId).src = src;
         };
+
+        var trackedDotNetObject = null;
+        window.trackDotNet = function (dotNetObj) {
+            trackedDotNetObject = dotNetObj;
+        };
+
+        window.scatterPlot = function (dataSet, targetDiv) {
+
+            function unpack(rows, key) {
+                return rows.map(function (row) { return row[key]; });
+            }
+
+            var data = [];
+
+            for (let key in dataSet) {
+
+                var rows = dataSet[key].rows;
+                var color = dataSet[key].color ?? 'rgba(217, 217, 217, 0.14)';
+
+                var trace = {
+                    x: unpack(rows, 'x'), y: unpack(rows, 'y'), z: unpack(rows, 'z'),
+                    text: dataSet[key]?.text,
+                    ids: dataSet[key]?.ids,
+                    name: dataSet[key].name,
+                    mode: 'markers',
+                    marker: {
+                        size: dataSet[key].size ?? 12,
+                        line: {
+                            color: dataSet[key].color ?? 'rgba(217, 217, 217, 0.14)',
+                            width: dataSet[key].width ?? 0.5
+                        },
+                        opacity: dataSet[key].opacity ?? 0.8
+                    },
+                    type: 'scatter3d'
+                };
+
+                data.push(trace);
+            }
+
+            var layout = {
+                margin: {
+                    l: 0,
+                    r: 0,
+                    b: 0,
+                    t: 0
+                },
+                showlegend: true,
+                legend: {
+                    x: 1,
+                    xanchor: 'right',
+                    y: 1
+                }
+            };
+
+            var div = document.getElementById(targetDiv);
+            Plotly.newPlot(div, data, layout);
+
+            div.on('plotly_click', function (clickData) {
+
+                var toSend = [];
+                var points = clickData.points;
+                points.forEach(function (item) {
+                    console.log(item);
+                    toSend.push({
+                        text: item.text,
+                        trace: item.data.name,
+                        id: item.id
+                    });
+                });
+
+                trackedDotNetObject.invokeMethodAsync('PointSelected', JSON.stringify(toSend));
+            });
+
+        };
     </script>
 </body>
 

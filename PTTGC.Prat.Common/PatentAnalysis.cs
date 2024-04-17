@@ -75,20 +75,8 @@ public class PatentAnalysis
     /// </summary>
     public bool IsAnalyzing { get; set; }
 
-    public void PopulateAnalysis()
-    {
-        foreach (var item in this.PromptResponses)
-        {
-            try
-            {
-                var response = item.Value;
-                var responseJO = response.FixJson();
-
-                this.PromptOutput[item.Key] = responseJO;
-            }
-            catch (Exception)
-            {
-            }
-        }
-    }
+    /// <summary>
+    /// Risk Level as determined by human
+    /// </summary>
+    public string HumanDecision { get; set; }
 }

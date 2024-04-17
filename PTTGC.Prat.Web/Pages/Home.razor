@@ -4,7 +4,7 @@
 
     <img src="/images/logo_askmegc.svg" style="width: 100px" />
 
-    <h1 class="ms-2">
+    <h1 class="ms-2 logo align-self-center">
         PRAT
     </h1>
 
@@ -47,6 +47,15 @@
                     Workspaces:
                 </b>
             </div>
+
+            <ul class="mt-1">
+                <li class="active">
+                    @(this.Workspace.InnovationTitle)
+                </li>
+                <li class="">
+                    Packaged ready-to-eat stir-fried chicken with basil with 300 days shelf life
+                </li>
+            </ul>
 
         </div>
 
@@ -190,7 +199,8 @@
                                 }
                             </span>
 
-                            <button class="btn btn-success disabling @(Helper.ActiveIf(this.IsBusy))">
+                            <button class="btn btn-success disabling @(Helper.ActiveIf(this.IsBusy))"
+                                    @onclick="this.AddNewMaterialAttribute">
                                 <i class="bi bi-plus-circle"></i>
                             </button>
                         </div>
@@ -232,7 +242,8 @@
                                     }
                                 </span>
 
-                                <button class="btn btn-outline-secondary disabling @(Helper.ActiveIf(this.IsBusy))">
+                                <button class="btn btn-outline-secondary disabling @(Helper.ActiveIf(this.IsBusy))"
+                                        @onclick="@(() => this.RemoveNewMaterialAttribute(item))">
                                     <i class="bi bi-x-circle"></i>
                                 </button>
                             </div>
@@ -254,7 +265,11 @@
 
                 <div class="clusterview d-flex">
 
-                    <div class="scatterplot flex-fill">
+                    <div class="scatterplot flex-fill"
+                         id="clusterview">
+
+                        
+
                     </div>
 
                     <div class="sample p-2 w-25">
@@ -275,18 +290,9 @@
 
                         <div>
                             <h3>
-                                @($"{this.Workspace.AIPredictedVisualizationCoords[0]:0.0000}"),<br />
-                                @($"{this.Workspace.AIPredictedVisualizationCoords[1]:0.0000}"),<br />
-                                @($"{this.Workspace.AIPredictedVisualizationCoords[2]:0.0000}")
+                                C@(_SelectedCluster?.ClusterLabel ?? "?")
                             </h3>
-                            Predicted Coords
-                        </div>
-
-                        <div>
-                            <button class="btn btn-success disabling @(Helper.ActiveIf(this.IsBusy))"
-                                    @onclick="this.BeginAnalysis">
-                                Begin Analysis
-                            </button>
+                            Selected Cluster
                         </div>
 
                     </div>
@@ -300,7 +306,16 @@
                             @(this.Workspace.AIPredictedCluster == "-1" ? "?" : (this.Workspace.MatchingCluster?.PatentApplicationIds?.Count ?? 0))
                         </h3>
                         <div>
-                            in cluster
+                            in predicted cluster
+                        </div>
+                    </div>
+
+                    <div class="stat">
+                        <h3>
+                            @(_SelectedCluster == null ? "?" : _SelectedCluster.PatentApplicationIds.Count)
+                        </h3>
+                        <div>
+                            in selected cluster
                         </div>
                     </div>
 
@@ -534,7 +549,7 @@
 
                 <div class="d-flex mt-1" style="gap: 10px">
                     <div class=" w-50">
-                        <b>@(_ActiveClaim.index):</b>
+                        <b>@(_ActiveClaim?.index):</b>
                         @(_ActiveClaim?.claim)
 
                         <br/>

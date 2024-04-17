@@ -93,6 +93,16 @@
     }
 }
 
+h1 {
+    font-family: 'DB Heavent';
+    line-height: 0.5 !important;
+}
+
+.logo {
+    font-size: 48px;
+    margin: 0;
+}
+
 .bordered(@color) {
     border: 1px solid @color;
     border-radius: 8px;
@@ -258,6 +268,28 @@
 
             tr > th:nth-child(3) {
                 width: 20%;
+            }
+        }
+    }
+}
+
+.sidebar {
+
+    ul {
+        margin: -12px;
+
+        list-style: none;
+        padding: 0;
+
+        li {
+            padding: 16px;
+
+            background-color: fade(white, 15%);
+            color: white;
+
+            &.active {
+                background-color: fade(white, 60%);
+                color: black;
             }
         }
     }
